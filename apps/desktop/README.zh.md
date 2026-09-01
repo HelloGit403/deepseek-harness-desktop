@@ -14,7 +14,7 @@ Windows 桌面壳使用与 Harness 客户端匹配的深色原生标题栏。当
 
 ## 更新通道
 
-正式构建默认使用公开的 [`HelloGit403/deepseek-harness-desktop`](https://github.com/HelloGit403/deepseek-harness-desktop/releases) GitHub Releases 通道。「Desktop Release」工作流负责构建 Windows 应用，并一起发布 `latest.yml`、NSIS 安装包及其 blockmap。桌面设置面板会在启动后检查这个通道，并支持由用户明确触发的检查、下载、校验后暂存，以及安装并重启操作。
+正式构建默认使用公开的 [`HelloGit403/deepseek-harness-desktop`](https://github.com/HelloGit403/deepseek-harness-desktop/releases) GitHub Releases 通道。「Desktop Release」工作流会检出 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本，应用本仓库的桌面外壳与桌面专属设置集成，再一起发布 `latest.yml`、NSIS 安装包及其 blockmap。桌面设置面板会在启动后检查这个通道，并支持由用户明确触发的检查、下载、校验后暂存，以及安装并重启操作。
 
 只有部署方需要用另一个通用 HTTPS 发布地址替换内置 GitHub 通道时，才在打包时设置 `DSH_DESKTOP_UPDATE_URL`。开发构建或未打包构建仍允许手动检查，但不会访问发布通道。
 
@@ -38,4 +38,4 @@ pnpm run desktop:dist
 
 构建会先创建一份提升后的生产部署，使 Harness profile loader 能够发现每个内置插件。随后 NSIS 安装包会写入 `apps/desktop/dist/`。安装后的应用会创建开始菜单与桌面快捷方式。服务端输出以 `desktop-server.log` 保存到 Electron 的平台日志目录中。
 
-维护者可以推送 `desktop-v<版本号>` 标签，或手动运行 **Desktop Release** 工作流来发布对应的 GitHub Release。标签版本必须与 `apps/desktop/package.json` 一致；更新元数据不完整时，工作流会拒绝发布不完整的更新通道。
+维护者需要更新固定的官方版本、验证桌面适配，再推送 `desktop-v<版本号>` 标签，或手动运行 **Desktop Release** 工作流来发布对应的 GitHub Release。标签版本必须与 `apps/desktop/package.json` 一致；更新元数据不完整时，工作流会拒绝发布不完整的更新通道。

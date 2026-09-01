@@ -24,7 +24,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          path: desktop-source
           fetch-depth: 0
+
+      - name: Resolve official source revision
+        id: upstream
+        shell: pwsh
+        run: |
+          $source = Get-Content desktop-source/.github/desktop-upstream.json -Raw | ConvertFrom-Json
+          "repository=$($source.repository)" >> $env:GITHUB_OUTPUT
+          "commit=$($source.commit)" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.upstream.outputs.repository }}
+          ref: ${{ steps.upstream.outputs.commit }}
+          path: official
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 
@@ -32,12 +48,39 @@ jobs:
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: official/pnpm-lock.yaml
+
+      - name: Apply desktop adaptation
+        shell: pwsh
+        run: |
+          New-Item official/apps/desktop -ItemType Directory -Force | Out-Null
+          foreach ($directory in @('assets', 'scripts', 'src', 'tests')) {
+            Copy-Item "desktop-source/apps/desktop/$directory" "official/apps/desktop/$directory" -Recurse -Force
+          }
+          foreach ($file in @('package.json', 'README.md', 'README.zh.md', 'README.i18n.yaml')) {
+            Copy-Item "desktop-source/apps/desktop/$file" "official/apps/desktop/$file" -Force
+          }
+          Copy-Item desktop-source/pnpm-workspace.yaml official/pnpm-workspace.yaml -Force
+          $client = 'packages/client/ui-settings-general/src/client'
+          $files = @(
+            'DesktopUpdateSection.module.css',
+            'DesktopUpdateSection.tsx',
+            'DesktopWindowOpacityRow.module.css',
+            'DesktopWindowOpacityRow.tsx',
+            'desktop-update-store.ts',
+            'desktop-window-bridge.ts',
+            'index.ts',
+            'locales.ts'
+          )
+          foreach ($file in $files) {
+            Copy-Item "desktop-source/$client/$file" "official/$client/$file" -Force
+          }
 
       - name: Resolve desktop release identity
         id: release
         shell: pwsh
         run: |
-          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $version = (Get-Content official/apps/desktop/package.json -Raw | ConvertFrom-Json).version
           $tag = "desktop-v$version"
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
             throw "Tag $env:GITHUB_REF_NAME does not match desktop package version $version."
@@ -46,22 +89,26 @@ jobs:
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        working-directory: official
+        run: pnpm install --no-frozen-lockfile
 
       - name: Test desktop shell
+        working-directory: official
         run: pnpm --filter @deepseek-ai/dsh-desktop test
 
       - name: Build Harness
+        working-directory: official
         run: pnpm run build:official
 
       - name: Build Windows installer
+        working-directory: official
         run: pnpm --filter @deepseek-ai/dsh-desktop run dist:win
 
       - name: Verify update assets
         id: assets
         shell: pwsh
         run: |
-          $directory = Resolve-Path apps/desktop/dist
+          $directory = Resolve-Path official/apps/desktop/dist
           $installer = @(Get-ChildItem $directory -File -Filter '*.exe')
           $blockmap = @(Get-ChildItem $directory -File -Filter '*.blockmap')
           $metadata = @(Get-ChildItem $directory -File -Filter 'latest.yml')

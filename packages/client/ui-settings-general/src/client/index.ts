@@ -26,6 +26,10 @@ import type {
 import { SettingsRoot } from './SettingsRoot.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
+import { DesktopUpdateSection } from './DesktopUpdateSection.tsx'
+import { DesktopWindowOpacityRow } from './DesktopWindowOpacityRow.tsx'
+import { DesktopUpdateController, desktopUpdateBridge } from './desktop-update-store.ts'
+import { desktopWindowBridge } from './desktop-window-bridge.ts'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
@@ -40,6 +44,8 @@ export type {
 export type { SettingsDocumentActionInjected, SettingsDocumentActionProps } from './SettingsDocumentAction.tsx'
 export type { SettingsDocumentState } from './settings-document-store.ts'
 export { SettingsDocumentStore } from './settings-document-store.ts'
+export { DesktopUpdateController, desktopUpdateBridge } from './desktop-update-store.ts'
+export { desktopWindowBridge } from './desktop-window-bridge.ts'
 export type { SettingsKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -180,4 +186,37 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },
   }, GeneralSection))
+
+  const updateBridge = desktopUpdateBridge()
+  if (updateBridge !== undefined) {
+    const controller = new DesktopUpdateController(updateBridge)
+    ctx.effect(() => () => { controller.dispose() }, 'ui-settings-general: desktop update controller')
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: 'desktop-update',
+      order: 90,
+      label: () => t('update.nav'),
+      locale: NS,
+      inject: () => ({
+        hooks: { desktopUpdate: controller },
+        check: () => controller.check(),
+        download: () => controller.download(),
+        install: () => controller.install(),
+      }),
+    }, DesktopUpdateSection))
+  }
+
+  const windowBridge = desktopWindowBridge()
+  if (windowBridge !== undefined) {
+    ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+      name: 'settings.general.item',
+      id: 'desktop-window-opacity',
+      order: 90,
+      locale: NS,
+      inject: () => ({
+        getOpacity: () => windowBridge.getOpacity(),
+        setOpacity: opacity => windowBridge.setOpacity(opacity),
+      }),
+    }, DesktopWindowOpacityRow))
+  }
 }

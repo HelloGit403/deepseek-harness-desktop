@@ -14,7 +14,7 @@ The Windows desktop shell uses a dark native title bar to match the Harness clie
 
 ## Update channel
 
-Release builds use the public [`HelloGit403/deepseek-harness-desktop`](https://github.com/HelloGit403/deepseek-harness-desktop/releases) GitHub Releases channel by default. The Desktop Release workflow builds the Windows application and publishes `latest.yml`, the NSIS installer, and its blockmap together. The desktop Settings panel checks this channel after startup and supports explicit check, download, verified staging, and install-and-restart actions.
+Release builds use the public [`HelloGit403/deepseek-harness-desktop`](https://github.com/HelloGit403/deepseek-harness-desktop/releases) GitHub Releases channel by default. The Desktop Release workflow checks out the exact official DeepSeek Harness revision recorded in `.github/desktop-upstream.json`, applies this repository's desktop shell and desktop-only Settings integration, and publishes `latest.yml`, the NSIS installer, and its blockmap together. The desktop Settings panel checks this channel after startup and supports explicit check, download, verified staging, and install-and-restart actions.
 
 Set `DSH_DESKTOP_UPDATE_URL` while packaging only when a deployment needs to replace the baked GitHub channel with another generic HTTPS release address. A development or unpackaged build keeps manual checks available but does not contact a release channel.
 
@@ -42,4 +42,4 @@ to `apps/desktop/dist/`. The installed application creates Start menu and
 desktop shortcuts. Server output is stored in Electron's platform log directory
 as `desktop-server.log`.
 
-Maintainers publish a matching GitHub Release by pushing a `desktop-v<version>` tag or running the **Desktop Release** workflow manually. The tag version must equal `apps/desktop/package.json`; the workflow refuses incomplete update metadata instead of publishing a partial channel.
+Maintainers update the pinned official revision, verify the adaptation, and publish a matching GitHub Release by pushing a `desktop-v<version>` tag or running the **Desktop Release** workflow manually. The tag version must equal `apps/desktop/package.json`; the workflow refuses incomplete update metadata instead of publishing a partial channel.

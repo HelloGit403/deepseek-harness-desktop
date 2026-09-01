@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import electronUpdater from 'electron-updater'
 import { spawn } from 'node:child_process'
-import { createWriteStream, existsSync } from 'node:fs'
+import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { desktopServerArgs, probeHarness, waitForHarness } from './harness-server.mjs'
@@ -48,6 +48,12 @@ function createMainWindow() {
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#061424',
+      symbolColor: '#d8f8ff',
+      height: 36,
+    },
     backgroundColor: '#050915',
     webPreferences: {
       contextIsolation: true,
@@ -60,6 +66,8 @@ function createMainWindow() {
     window,
     preferencesPath: join(app.getPath('userData'), 'window-appearance.json'),
   })
+  const cyberTheme = readFileSync(join(import.meta.dirname, 'cyber-theme.css'), 'utf8')
+  window.webContents.on('did-finish-load', () => { void window.webContents.insertCSS(cyberTheme) })
 
   window.once('ready-to-show', () => window.show())
   window.webContents.setWindowOpenHandler(({ url }) => {

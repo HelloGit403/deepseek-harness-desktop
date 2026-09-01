@@ -2,13 +2,13 @@
   "name": "@deepseek-ai/dsh-desktop",
   "description": "Installable desktop shell for the DeepSeek Harness Web UI",
   "author": "DeepSeek AI",
-  "version": "0.1.2-rc.1",
+  "version": "0.1.2-rc.2",
   "private": true,
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
     "dev": "electron .",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test",
     "dist:win": "node scripts/dist-win.mjs"
   },
   "dependencies": {

@@ -1,0 +1,84 @@
+:root {
+  --dsh-cyber-flow-cyan: #38e8ff;
+  --dsh-cyber-flow-violet: #876dff;
+  --dsh-cyber-flow-magenta: #ef4fff;
+  --dsh-cyber-glow: rgb(56 232 255 / 28%);
+  --dsh-cyber-glow-strong: rgb(128 92 255 / 42%);
+  --dsh-cyber-glass: #0a1730;
+  --dsh-cyber-accent-secondary: #9a69ff;
+}
+
+html {
+  background: #020611;
+}
+
+body {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding-top: 36px !important;
+  background:
+    radial-gradient(circle at 16% 18%, rgb(0 229 255 / 16%), transparent 34%),
+    radial-gradient(circle at 86% 78%, rgb(151 68 255 / 19%), transparent 40%),
+    linear-gradient(135deg, #020914, #07152b 48%, #120a29) !important;
+}
+
+body::before {
+  position: fixed;
+  z-index: 0;
+  inset: 36px 0 0;
+  background-image:
+    linear-gradient(rgb(55 226 255 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(55 226 255 / 5%) 1px, transparent 1px);
+  background-size: 52px 52px;
+  content: '';
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+  pointer-events: none;
+}
+
+button,
+[role='button'],
+a,
+input,
+select,
+textarea {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease,
+    opacity 180ms ease,
+    transform 180ms cubic-bezier(.2, .9, .25, 1.25) !important;
+}
+
+button:hover:not(:disabled),
+[role='button']:hover,
+a:hover {
+  filter: brightness(1.08);
+  text-shadow: 0 0 16px rgb(56 232 255 / 35%);
+}
+
+button:active:not(:disabled),
+[role='button']:active {
+  transform: scale(.965);
+}
+
+dialog,
+[role='dialog'] {
+  border-color: rgb(56 232 255 / 45%) !important;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 55%), 0 0 48px rgb(76 210 255 / 18%) !important;
+  backdrop-filter: blur(22px) saturate(135%);
+}
+
+::selection {
+  background: #2d68d7;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body::before {
+    animation: dsh-grid-drift 18s linear infinite;
+  }
+}
+
+@keyframes dsh-grid-drift {
+  to { background-position: 52px 52px; }
+}

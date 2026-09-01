@@ -1,4 +1,7 @@
 .group {
+  --dsh-cyber-flow-cyan: #38e8ff;
+  --dsh-cyber-glow: rgb(56 232 255 / 28%);
+  --dsh-cyber-glow-strong: rgb(128 92 255 / 42%);
   display: flex;
   flex-direction: column;
   gap: 12px;
