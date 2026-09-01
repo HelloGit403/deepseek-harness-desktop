@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
-import { desktopServerArgs, probeHarness, waitForHarness } from './harness-server.mjs'
+import { desktopServerArgs, harnessReadyUrlFromOutput, probeHarness } from './harness-server.mjs'
 import { DesktopUpdaterController, normalizeDesktopUpdateUrl } from './updater-controller.mjs'
 import { createWindowAppearanceController } from './window-appearance.mjs'
 
@@ -147,37 +147,66 @@ function startHarnessServer() {
     windowsHide: true,
   })
   ownsServer = true
+  let bufferedOutput = ''
+  /** @type {(url: string) => void} */
+  let announceReady
+  const readyUrl = new Promise(resolve => { announceReady = resolve })
+  serverProcess.stdout?.on('data', (chunk) => {
+    bufferedOutput = `${bufferedOutput}${String(chunk)}`.slice(-16_384)
+    const url = harnessReadyUrlFromOutput(bufferedOutput, APP_ORIGIN)
+    if (url !== undefined) announceReady(url)
+  })
   serverProcess.stdout?.pipe(log)
   serverProcess.stderr?.pipe(log)
-  serverProcess.once('exit', (code) => {
+  const exited = new Promise(resolve => serverProcess.once('exit', (code) => {
     log.end()
-    if (!quitting && mainWindow !== undefined && !mainWindow.isDestroyed()) {
-      void mainWindow.loadURL(localPage(
-        'DeepSeek Harness 已停止',
-        '本地服务意外退出，请重新启动应用。',
-        `退出代码：${String(code)}\n日志：${logPath}`,
-      ))
-    }
-  })
-  return logPath
+    resolve(code)
+  }))
+  return { exited, logPath, readyUrl }
 }
 
 async function openHarness() {
   mainWindow = createMainWindow()
   await mainWindow.loadURL(localPage('正在启动 DeepSeek Harness', '正在准备本地服务，首次启动可能需要稍等片刻。'))
 
-  let logPath = ''
-  if (!await probeHarness(APP_URL)) logPath = startHarnessServer()
+  const started = await probeHarness(APP_URL) ? undefined : startHarnessServer()
+  let timeout
+  const outcome = started === undefined
+    ? { ready: true, url: APP_URL }
+    : await Promise.race([
+        started.readyUrl.then(url => ({ ready: true, url })),
+        started.exited.then(code => ({ code, ready: false })),
+        new Promise(resolve => {
+          timeout = setTimeout(() => resolve({ ready: false }), 60_000)
+        }),
+      ])
+  if (timeout !== undefined) clearTimeout(timeout)
 
-  if (await waitForHarness(APP_URL)) {
-    await mainWindow.loadURL(APP_URL)
+  if (outcome.ready) {
+    await mainWindow.loadURL(outcome.url)
+    if (started !== undefined) {
+      void started.exited.then((code) => {
+        if (quitting || mainWindow === undefined || mainWindow.isDestroyed()) return
+        return mainWindow.loadURL(localPage(
+          'DeepSeek Harness 已停止',
+          '本地服务意外退出，请重新启动应用。',
+          `退出代码：${String(code)}\n日志：${started.logPath}`,
+        ))
+      })
+    }
     return
   }
 
+  stopOwnedServer()
+
   await mainWindow.loadURL(localPage(
     '无法启动 DeepSeek Harness',
-    '本地服务未能在 60 秒内准备完成。请关闭应用后重试。',
-    logPath ? `诊断日志：${logPath}` : `端口 ${APP_PORT} 已被其他程序占用。`,
+    started === undefined
+      ? `端口 ${APP_PORT} 上运行的不是 DeepSeek Harness。请关闭占用该端口的程序后重试。`
+      : '本地服务未能完成启动。请关闭应用后重试。',
+    started === undefined
+      ? `端口：${APP_PORT}`
+      : `退出代码：${'code' in outcome ? String(outcome.code) : '超时'}\n诊断日志：${started.logPath}`,
   ))
 }
 

@@ -1,0 +1,82 @@
+name: Desktop Upstream Sync
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: desktop-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Detect and dispatch an official desktop update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve official branch head
+        id: upstream
+        shell: pwsh
+        run: |
+          $source = Get-Content .github/desktop-upstream.json -Raw | ConvertFrom-Json
+          $remote = "https://github.com/$($source.repository).git"
+          $line = @(git ls-remote $remote "refs/heads/$($source.branch)")
+          if ($LASTEXITCODE -ne 0 -or $line.Count -ne 1) {
+            throw "Unable to resolve $($source.repository) branch $($source.branch)."
+          }
+          $latest = ($line[0] -split "\s+")[0]
+          if ($latest -notmatch '^[0-9a-f]{40}$') {
+            throw "Official branch returned an invalid commit: $latest"
+          }
+          "latest=$latest" >> $env:GITHUB_OUTPUT
+          "changed=$($latest -ne $source.commit)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+
+      - name: Advance pinned revision and desktop version
+        if: steps.upstream.outputs.changed == 'true'
+        id: advance
+        shell: pwsh
+        run: |
+          $version = node apps/desktop/scripts/advance-upstream.mjs '${{ steps.upstream.outputs.latest }}'
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to advance the desktop release identity.' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/desktop-upstream.json apps/desktop/package.json
+          git commit -m "chore(desktop): advance official harness to ${{ steps.upstream.outputs.latest }}"
+          git push origin HEAD:main
+
+      - name: Resolve current release identity
+        id: release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          if ('${{ steps.upstream.outputs.changed }}' -eq 'true') {
+            $version = '${{ steps.advance.outputs.version }}'
+          }
+          $tag = "desktop-v$version"
+          gh release view $tag *> $null
+          $missing = $LASTEXITCODE -ne 0
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "missing=$missing".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+
+      - name: Dispatch tested desktop release
+        if: steps.upstream.outputs.changed == 'true' || steps.release.outputs.missing == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run desktop-release.yml --ref main
+
+      - name: Report current channel
+        if: steps.upstream.outputs.changed != 'true' && steps.release.outputs.missing != 'true'
+        run: echo 'Desktop release channel already matches the official branch head.'

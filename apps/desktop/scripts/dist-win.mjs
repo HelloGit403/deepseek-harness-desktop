@@ -3,6 +3,14 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeDesktopUpdateUrl } from '../src/updater-controller.mjs'
+import {
+  assertStagedRuntimeClosure,
+  loadWorkspacePackages,
+  materializeStagedLinks,
+  resolveRuntimeClosure,
+  restoreMissingWorkspacePackages,
+} from './runtime-closure.mjs'
+import { smokePackagedHarness } from './packaged-smoke.mjs'
 
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const rootDir = resolve(appDir, '..', '..')
@@ -31,8 +39,29 @@ function run(command, args, options = {}) {
 removeGeneratedDirectory(stageDir)
 removeGeneratedDirectory(outputDir)
 
+const sourceManifestPath = join(appDir, 'package.json')
+const sourceManifestText = readFileSync(sourceManifestPath, 'utf8')
+const sourceManifest = JSON.parse(sourceManifestText)
+const packages = loadWorkspacePackages(rootDir)
+const runtimeRoots = [
+  '@deepseek-ai/dsh',
+  ...Object.keys(sourceManifest.dependencies ?? {}).filter(name => packages.has(name)),
+]
+const runtime = resolveRuntimeClosure(packages, runtimeRoots)
+const runtimeDependencies = Object.fromEntries([
+  ...[...runtime.workspace.keys()].map(name => [name, 'workspace:^']),
+  ...runtime.externalPeers,
+  ...Object.entries(sourceManifest.dependencies ?? {}),
+].sort(([left], [right]) => left.localeCompare(right)))
+writeFileSync(sourceManifestPath, `${JSON.stringify({
+  ...sourceManifest,
+  dependencies: runtimeDependencies,
+}, undefined, 2)}\n`)
+
 const deployArgs = [
   '--config.node-linker=hoisted',
+  '--config.auto-install-peers=false',
+  '--config.link-workspace-packages=true',
   '--filter',
   '@deepseek-ai/dsh-desktop',
   'deploy',
@@ -40,16 +69,27 @@ const deployArgs = [
   '--prod',
   '--legacy',
 ]
-if (process.env.npm_execpath !== undefined) {
-  run(process.execPath, [process.env.npm_execpath, ...deployArgs])
+try {
+  if (process.env.npm_execpath !== undefined) {
+    run(process.execPath, [process.env.npm_execpath, ...deployArgs])
+  }
+  else {
+    run('pnpm', deployArgs, { shell: process.platform === 'win32' })
+  }
 }
-else {
-  run('pnpm', deployArgs, { shell: process.platform === 'win32' })
+finally {
+  writeFileSync(sourceManifestPath, sourceManifestText)
 }
+
+const restored = restoreMissingWorkspacePackages(stageDir, runtime.workspace)
+if (restored.length > 0) console.log(`desktop: restored legacy deploy packages: ${restored.join(', ')}`)
+materializeStagedLinks(stageDir)
+assertStagedRuntimeClosure(stageDir, runtime.workspace)
 
 const stagedManifestPath = join(stageDir, 'package.json')
 const stagedManifest = JSON.parse(readFileSync(stagedManifestPath, 'utf8'))
 stagedManifest.build.directories.output = outputDir
+stagedManifest.build.afterPack = join(appDir, 'scripts', 'after-pack.cjs')
 const updateUrl = normalizeDesktopUpdateUrl(process.env.DSH_DESKTOP_UPDATE_URL)
 if (updateUrl !== undefined) {
   stagedManifest.build.publish = [{ provider: 'generic', url: updateUrl }]
@@ -58,4 +98,10 @@ writeFileSync(stagedManifestPath, `${JSON.stringify(stagedManifest, undefined, 2
 
 const builderCli = join(appDir, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js')
 run(process.execPath, [builderCli, '--projectDir', stageDir, '--win', 'nsis', '--x64', '--publish', 'never'])
+const unpackedDir = join(outputDir, 'win-unpacked')
+await smokePackagedHarness({
+  executable: join(unpackedDir, 'DeepSeek Harness.exe'),
+  entry: join(unpackedDir, 'resources', 'app', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+})
+console.log('desktop: packaged Harness startup smoke passed')
 removeGeneratedDirectory(stageDir)
