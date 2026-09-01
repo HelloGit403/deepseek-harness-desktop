@@ -1,0 +1,55 @@
+name: Desktop Upstream Monitor
+
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: desktop-upstream-monitor
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: Check official Harness source
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Compare official revision
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $upstream = gh api repos/deepseek-ai/deepseek-harness/commits/master --jq .sha
+          $recorded = (Get-Content .github/desktop-upstream.json -Raw | ConvertFrom-Json).commit
+          "commit=$upstream" >> $env:GITHUB_OUTPUT
+          "changed=$($upstream -ne $recorded)" >> $env:GITHUB_OUTPUT
+
+      - name: Open or refresh upstream update issue
+        if: steps.upstream.outputs.changed == 'True'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.commit }}
+        shell: pwsh
+        run: |
+          $title = 'Official DeepSeek Harness update available'
+          $body = @"
+          The official source has advanced to ``$env:UPSTREAM_COMMIT``.
+
+          Review and merge the upstream changes with the desktop adaptations, run the desktop checks, bump ``apps/desktop/package.json``, and publish the matching Desktop Release. The installed application updates only from this repository's verified release assets.
+          "@
+          $existing = gh issue list --state open --search "`"$title`" in:title" --json number --jq '.[0].number'
+          if ([string]::IsNullOrWhiteSpace($existing)) {
+            gh issue create --title $title --body $body
+          }
+          else {
+            gh issue edit $existing --body $body
+          }

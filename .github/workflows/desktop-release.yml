@@ -1,0 +1,92 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  release:
+    name: Build and publish Windows desktop release
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Resolve desktop release identity
+        id: release
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $tag = "desktop-v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
+            throw "Tag $env:GITHUB_REF_NAME does not match desktop package version $version."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test desktop shell
+        run: pnpm --filter @deepseek-ai/dsh-desktop test
+
+      - name: Build Harness
+        run: pnpm run build:official
+
+      - name: Build Windows installer
+        run: pnpm --filter @deepseek-ai/dsh-desktop run dist:win
+
+      - name: Verify update assets
+        id: assets
+        shell: pwsh
+        run: |
+          $directory = Resolve-Path apps/desktop/dist
+          $installer = @(Get-ChildItem $directory -File -Filter '*.exe')
+          $blockmap = @(Get-ChildItem $directory -File -Filter '*.blockmap')
+          $metadata = @(Get-ChildItem $directory -File -Filter 'latest.yml')
+          if ($installer.Count -ne 1 -or $blockmap.Count -ne 1 -or $metadata.Count -ne 1) {
+            throw "Expected exactly one installer, one blockmap, and latest.yml."
+          }
+          "installer=$($installer[0].FullName)" >> $env:GITHUB_OUTPUT
+          "blockmap=$($blockmap[0].FullName)" >> $env:GITHUB_OUTPUT
+          "metadata=$($metadata[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          INSTALLER: ${{ steps.assets.outputs.installer }}
+          BLOCKMAP: ${{ steps.assets.outputs.blockmap }}
+          METADATA: ${{ steps.assets.outputs.metadata }}
+        shell: pwsh
+        run: |
+          $assets = @($env:INSTALLER, $env:BLOCKMAP, $env:METADATA)
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG @assets --clobber
+          }
+          else {
+            gh release create $env:RELEASE_TAG @assets --target $env:GITHUB_SHA --title "DeepSeek Harness Desktop $env:RELEASE_VERSION" --generate-notes --latest
+          }

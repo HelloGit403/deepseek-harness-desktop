@@ -1,0 +1,121 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  padding: 18px 0;
+}
+
+.heading,
+.controls,
+.scale {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.heading p,
+.error {
+  margin: 0;
+}
+
+.heading p {
+  margin-top: 3px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.value {
+  min-width: 52px;
+  border: 1px solid color-mix(in srgb, var(--dsh-cyber-flow-cyan) 46%, var(--dsw-alias-border-l2));
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: color-mix(in srgb, var(--dsh-cyber-flow-cyan) 9%, transparent);
+  color: var(--dsh-cyber-flow-cyan);
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  text-align: center;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--dsh-cyber-glow) 28%, transparent);
+}
+
+.controls {
+  gap: 14px;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  flex: 1;
+  border-radius: 999px;
+  accent-color: var(--dsh-cyber-flow-cyan);
+  cursor: pointer;
+  filter: drop-shadow(0 0 7px var(--dsh-cyber-glow));
+}
+
+.slider:disabled {
+  cursor: default;
+  opacity: .5;
+}
+
+.controls button {
+  min-height: 32px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 9px;
+  padding: 5px 12px;
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-3) 82%, transparent);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 160ms var(--ds-ease-in-out), box-shadow 160ms var(--ds-ease-in-out), transform 160ms var(--ds-ease-in-out);
+}
+
+.controls button:hover:not(:disabled) {
+  border-color: var(--dsh-cyber-flow-cyan);
+  box-shadow: 0 0 18px var(--dsh-cyber-glow);
+  transform: translateY(-1px);
+}
+
+.controls button:active:not(:disabled) {
+  transform: scale(.96);
+}
+
+.controls button:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+.scale {
+  justify-content: space-between;
+  padding-right: 83px;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code);
+  font-size: 10px;
+}
+
+.error {
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .value {
+    animation: window-opacity-pulse 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes window-opacity-pulse {
+  50% { box-shadow: 0 0 26px var(--dsh-cyber-glow-strong); }
+}

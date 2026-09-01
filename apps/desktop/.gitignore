@@ -1,0 +1,5 @@
+/.deploy/
+/deploy-hoisted/
+/deploy-test/
+/dist/
+/.smoke-*/
