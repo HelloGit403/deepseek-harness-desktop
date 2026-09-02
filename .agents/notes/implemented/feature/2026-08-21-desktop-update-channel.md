@@ -16,6 +16,8 @@ Release packaging records the public `HelloGit403/deepseek-harness-desktop` GitH
 
 The repository's Windows release workflow checks out the exact official DeepSeek Harness revision recorded in `.github/desktop-upstream.json` into an isolated source directory, then copies the owned desktop shell and desktop-only Settings integration onto that coherent official tree. It installs that assembled workspace, builds the official Host and Web artifacts, and publishes the NSIS installer, its blockmap, and `latest.yml` as one GitHub Release. The workflow derives a `v<version>` tag from the desktop package version because `electron-updater` requires the release-feed tag to parse as SemVer, and rejects a mismatched pushed tag, a repository build failure, or an incomplete asset set.
 
+The desktop staging step keeps the persisted `code` preset identity mountable when the selected official Harness revision supplies only its replacement `ptc`. It copies the current official `ptc` directory into a staged `code` directory without changing the source tree or session log. A selected official revision that supplies `code` remains authoritative because staging never overwrites that directory.
+
 Electron's user-data directory owns the Harness home and updater cache. NSIS replaces the installation directory, so profiles, sessions, archived-session membership, settings, and credentials remain outside the replaced files.
 
 ## Alternatives considered
@@ -26,6 +28,8 @@ Electron's user-data directory owns the Harness home and updater cache. NSIS rep
 
 **Maintain a custom installer downloader.** Electron Updater already coordinates NSIS metadata, checksum validation, cached downloads, progress, and restart installation. A second implementation would duplicate security- and lifecycle-sensitive behavior.
 
+**Rewrite stored session logs during installation.** Session logs are durable model and tool history, and the installer has neither the session backend's transactional ownership nor enough context to rewrite a preset identity safely. A staged alias preserves the recorded bytes and confines the adaptation to replaceable application files.
+
 ## Consequences
 
-Every installable update must publish `latest.yml`, the NSIS installer, and its blockmap in one release after the desktop adaptations pass their checks. The application can detect and install those releases without moving user data. The public channel requires repository release availability; development and unpackaged builds perform no update network requests.
+Every installable update must publish `latest.yml`, the NSIS installer, and its blockmap in one release after the desktop adaptations pass their checks. The application can detect and install those releases without moving user data. A build that needs the staged alias exposes it in the preset roster as a compatibility PTC entry; new sessions continue to use the current `ptc` id. The public channel requires repository release availability; development and unpackaged builds perform no update network requests.

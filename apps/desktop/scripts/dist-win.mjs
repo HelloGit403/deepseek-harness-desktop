@@ -3,6 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeDesktopUpdateUrl } from '../src/updater-controller.mjs'
+import { installLegacyPresetAlias } from './legacy-preset-alias.mjs'
 import {
   assertStagedRuntimeClosure,
   loadWorkspacePackages,
@@ -85,6 +86,8 @@ const restored = restoreMissingWorkspacePackages(stageDir, runtime.workspace)
 if (restored.length > 0) console.log(`desktop: restored legacy deploy packages: ${restored.join(', ')}`)
 materializeStagedLinks(stageDir)
 assertStagedRuntimeClosure(stageDir, runtime.workspace)
+const legacyPreset = installLegacyPresetAlias(stageDir)
+console.log(`desktop: legacy code preset alias ${legacyPreset}`)
 
 const stagedManifestPath = join(stageDir, 'package.json')
 const stagedManifest = JSON.parse(readFileSync(stagedManifestPath, 'utf8'))
