@@ -14,7 +14,7 @@ Electron 主进程通过 `electron-updater` 持有桌面更新，并通过与 sa
 
 正式发布构建会在暂存应用中记录公开的 `HelloGit403/deepseek-harness-desktop` GitHub Releases 提供方。`DSH_DESKTOP_UPDATE_URL` 仍是明确的打包时覆盖项，供持有其他通用 HTTPS 发布地址的部署方使用。已配置的构建会在启动后检查更新，所有下载与安装操作仍须由用户明确触发。Electron Builder 的发布元数据提供安装包校验值，更新器只有在校验完成后才发布已下载状态。开发构建和未打包构建保持可用，并显示未配置状态，而不会猜测更新来源。
 
-仓库中的 Windows 发布工作流会把 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本检出到隔离的源码目录，再把本仓库持有的桌面外壳与桌面专属设置集成复制到这份版本一致的官方源码上。工作流安装组装后的工作区，构建正式 Host 与 Web 产物，再把 NSIS 安装包、对应的 blockmap 和 `latest.yml` 作为一个 GitHub Release 发布。工作流从桌面包版本推导发布标签，并拒绝不匹配的已推送标签、仓库构建失败或不完整的发布文件集合。
+仓库中的 Windows 发布工作流会把 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本检出到隔离的源码目录，再把本仓库持有的桌面外壳与桌面专属设置集成复制到这份版本一致的官方源码上。工作流安装组装后的工作区，构建正式 Host 与 Web 产物，再把 NSIS 安装包、对应的 blockmap 和 `latest.yml` 作为一个 GitHub Release 发布。由于 `electron-updater` 要求发布订阅中的标签能够解析为 SemVer，工作流会从桌面包版本推导 `v<版本号>` 标签，并拒绝不匹配的已推送标签、仓库构建失败或不完整的发布文件集合。
 
 Electron 用户数据目录持有 Harness home 和更新缓存。NSIS 只替换安装目录，因此 profile、会话、归档会话成员关系、设置和凭据都位于被替换文件之外。
 

@@ -3,7 +3,7 @@ name: Desktop Release
 on:
   push:
     tags:
-      - 'desktop-v*'
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -83,7 +83,8 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content official/apps/desktop/package.json -Raw | ConvertFrom-Json).version
-          $tag = "desktop-v$version"
+          $tag = node desktop-source/apps/desktop/scripts/advance-upstream.mjs --tag $version
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to derive a SemVer-compatible desktop release tag.' }
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
             throw "Tag $env:GITHUB_REF_NAME does not match desktop package version $version."
           }

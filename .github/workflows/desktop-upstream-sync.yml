@@ -63,7 +63,8 @@ jobs:
           if ('${{ steps.upstream.outputs.changed }}' -eq 'true') {
             $version = '${{ steps.advance.outputs.version }}'
           }
-          $tag = "desktop-v$version"
+          $tag = node apps/desktop/scripts/advance-upstream.mjs --tag $version
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to derive a SemVer-compatible desktop release tag.' }
           gh release view $tag *> $null
           $missing = $LASTEXITCODE -ne 0
           "version=$version" >> $env:GITHUB_OUTPUT

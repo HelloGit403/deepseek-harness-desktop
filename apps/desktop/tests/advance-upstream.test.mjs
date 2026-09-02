@@ -3,7 +3,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { advanceUpstream, nextDesktopVersion } from '../scripts/advance-upstream.mjs'
+import { advanceUpstream, desktopReleaseTag, nextDesktopVersion } from '../scripts/advance-upstream.mjs'
+
+test('desktop releases use tags electron-updater can parse as SemVer', () => {
+  assert.equal(desktopReleaseTag('0.1.2-rc.5'), 'v0.1.2-rc.5')
+  assert.equal(desktopReleaseTag('1.0.0'), 'v1.0.0')
+  assert.throws(() => desktopReleaseTag('desktop-v0.1.2-rc.5'), /not valid SemVer/u)
+})
 
 test('desktop release candidates advance monotonically', () => {
   assert.equal(nextDesktopVersion('0.1.2-rc.5'), '0.1.2-rc.6')

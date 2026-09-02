@@ -4,6 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u
 const RELEASE_CANDIDATE_PATTERN = /^(\d+\.\d+\.\d+)-rc\.(\d+)$/u
+const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u
+
+/** Return the SemVer-compatible tag consumed by electron-updater. */
+export function desktopReleaseTag(version) {
+  if (!VERSION_PATTERN.test(version)) throw new Error(`Desktop version is not valid SemVer: ${version}`)
+  return `v${version}`
+}
 
 /** Return the next desktop release-candidate version. */
 export function nextDesktopVersion(version) {
@@ -31,12 +38,19 @@ export function advanceUpstream(options) {
 }
 
 if (import.meta.main) {
-  const commit = process.argv[2]
-  if (commit === undefined) throw new Error('Usage: node advance-upstream.mjs <official-commit>')
-  const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-  console.log(advanceUpstream({
-    commit,
-    desktopPath: resolve(appDir, 'package.json'),
-    upstreamPath: resolve(appDir, '..', '..', '.github', 'desktop-upstream.json'),
-  }))
+  const argument = process.argv[2]
+  if (argument === '--tag') {
+    const version = process.argv[3]
+    if (version === undefined) throw new Error('Usage: node advance-upstream.mjs --tag <version>')
+    console.log(desktopReleaseTag(version))
+  } else {
+    const commit = argument
+    if (commit === undefined) throw new Error('Usage: node advance-upstream.mjs <official-commit>')
+    const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+    console.log(advanceUpstream({
+      commit,
+      desktopPath: resolve(appDir, 'package.json'),
+      upstreamPath: resolve(appDir, '..', '..', '.github', 'desktop-upstream.json'),
+    }))
+  }
 }
