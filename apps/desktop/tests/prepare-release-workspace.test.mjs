@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { test } from 'node:test'
 import { prepareReleaseWorkspace } from '../scripts/prepare-release-workspace.mjs'
 
 test('desktop release preserves upstream workspace configuration', () => {
-  const workflow = readFileSync(new URL('../../../.github/workflows/desktop-release.yml', import.meta.url), 'utf8')
+  const workflowPath = process.env.DSH_DESKTOP_SOURCE_ROOT
+    ? resolve(process.env.DSH_DESKTOP_SOURCE_ROOT, '.github/workflows/desktop-release.yml')
+    : new URL('../../../.github/workflows/desktop-release.yml', import.meta.url)
+  const workflow = readFileSync(workflowPath, 'utf8')
 
   assert.match(workflow, /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml/u)
   assert.doesNotMatch(workflow, /Copy-Item desktop-source\/pnpm-workspace\.yaml/u)

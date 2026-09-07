@@ -98,6 +98,8 @@ jobs:
 
       - name: Test desktop shell
         working-directory: official
+        env:
+          DSH_DESKTOP_SOURCE_ROOT: ${{ github.workspace }}/desktop-source
         run: pnpm --filter @deepseek-ai/dsh-desktop test
 
       - name: Build Harness
