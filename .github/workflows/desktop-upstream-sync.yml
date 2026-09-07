@@ -65,8 +65,10 @@ jobs:
           }
           $tag = node apps/desktop/scripts/advance-upstream.mjs --tag $version
           if ($LASTEXITCODE -ne 0) { throw 'Unable to derive a SemVer-compatible desktop release tag.' }
-          gh release view $tag *> $null
-          $missing = $LASTEXITCODE -ne 0
+          $exists = node apps/desktop/scripts/github-release-exists.mjs $env:GITHUB_REPOSITORY $tag
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to query the desktop release channel.' }
+          if ($exists -notin @('true', 'false')) { throw "Desktop release lookup returned an invalid result: $exists" }
+          $missing = $exists -eq 'false'
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "missing=$missing".ToLowerInvariant() >> $env:GITHUB_OUTPUT
