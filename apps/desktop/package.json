@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-desktop",
   "description": "Installable desktop shell for the DeepSeek Harness Web UI",
   "author": "DeepSeek AI",
-  "version": "0.1.2-rc.9",
+  "version": "0.1.2-rc.10",
   "private": true,
   "type": "module",
   "main": "src/main.mjs",

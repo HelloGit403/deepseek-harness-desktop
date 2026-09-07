@@ -62,7 +62,8 @@ jobs:
           foreach ($file in @('package.json', 'README.md', 'README.zh.md', 'README.i18n.yaml')) {
             Copy-Item "desktop-source/apps/desktop/$file" "official/apps/desktop/$file" -Force
           }
-          Copy-Item desktop-source/pnpm-workspace.yaml official/pnpm-workspace.yaml -Force
+          node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to add the desktop dependency build permissions.' }
           $client = 'packages/client/ui-settings-general/src/client'
           $files = @(
             'DesktopUpdateSection.module.css',
