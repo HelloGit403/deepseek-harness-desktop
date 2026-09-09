@@ -55,15 +55,10 @@ jobs:
       - name: Apply desktop adaptation
         shell: pwsh
         run: |
-          New-Item official/apps/desktop -ItemType Directory -Force | Out-Null
-          foreach ($directory in @('assets', 'scripts', 'src', 'tests')) {
-            Copy-Item "desktop-source/apps/desktop/$directory" "official/apps/desktop/$directory" -Recurse -Force
-          }
-          foreach ($file in @('package.json', 'README.md', 'README.zh.md', 'README.i18n.yaml')) {
-            Copy-Item "desktop-source/apps/desktop/$file" "official/apps/desktop/$file" -Force
-          }
-          node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to add the desktop dependency build permissions.' }
+          Remove-Item official/apps/desktop -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force
+          node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml official/tsconfig.host.json official/tsdown.config.ts
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare the official workspace for the desktop adaptation.' }
           $client = 'packages/client/ui-settings-general/src/client'
           $files = @(
             'DesktopUpdateSection.module.css',

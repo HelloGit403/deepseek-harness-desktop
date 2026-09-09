@@ -14,7 +14,7 @@ Electron 主进程通过 `electron-updater` 持有桌面更新，并通过与 sa
 
 正式发布构建会在暂存应用中记录公开的 `HelloGit403/deepseek-harness-desktop` GitHub Releases 提供方。`DSH_DESKTOP_UPDATE_URL` 仍是明确的打包时覆盖项，供持有其他通用 HTTPS 发布地址的部署方使用。已配置的构建会在启动后检查更新，所有下载与安装操作仍须由用户明确触发。Electron Builder 的发布元数据提供安装包校验值，更新器只有在校验完成后才发布已下载状态。开发构建和未打包构建保持可用，并显示未配置状态，而不会猜测更新来源。
 
-仓库中的 Windows 发布工作流会把 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本检出到隔离的源码目录，再把本仓库持有的桌面外壳与桌面专属设置集成复制到这份版本一致的官方源码上。工作流保留官方工作区配置，只注入经过审查的 Electron 依赖构建许可，使官方新增的安装要求继续保持权威。工作流安装组装后的工作区，构建正式 Host 与 Web 产物，再把 NSIS 安装包、对应的 blockmap 和 `latest.yml` 作为一个 GitHub Release 发布。由于 `electron-updater` 要求发布订阅中的标签能够解析为 SemVer，工作流会从桌面包版本推导 `v<版本号>` 标签，并拒绝不匹配的已推送标签、仓库构建失败或不完整的发布文件集合。定时同步通过已鉴权的 API 请求查询对应 GitHub Release：HTTP 404 会派发缺失的发布，HTTP 200 会保持当前通道不变，其他响应都会停止同步。
+仓库中的 Windows 发布工作流会把 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本检出到隔离的源码目录，再用本仓库持有的桌面外壳替换这棵临时源码树中的桌面包，并把桌面专属设置集成复制到这份版本一致的官方源码上。工作流保留官方工作区配置，只注入经过审查的 Electron 依赖构建许可，并从临时 Host 编译器与打包器输入中移除已被替换的官方桌面项目，使官方新增的安装要求继续保持权威，同时不会编译两套桌面实现。工作流安装组装后的工作区，构建正式 Host 与 Web 产物，再把 NSIS 安装包、对应的 blockmap 和 `latest.yml` 作为一个 GitHub Release 发布。暂存应用包含构建时的 Node.js 可执行文件及其完整许可证，因此 Harness 进程会使用安装依赖时相同的原生模块 ABI，而不是 Electron 内置的 Node.js ABI。electron-builder 会在运行时下载平台工具归档，因此安装包封装首次失败后会删除不完整产物并再重试两次。由于 `electron-updater` 要求发布订阅中的标签能够解析为 SemVer，工作流会从桌面包版本推导 `v<版本号>` 标签，并拒绝不匹配的已推送标签、仓库构建失败、封装后 Harness 启动失败或不完整的发布文件集合。定时同步通过已鉴权的 API 请求查询对应 GitHub Release：HTTP 404 会派发缺失的发布，HTTP 200 会保持当前通道不变，其他响应都会停止同步。
 
 当选定的 DeepSeek Harness 官方版本只提供替代它的 `ptc` 时，桌面暂存步骤会保持持久化的 `code` 预设标识可被挂载。它把当前官方 `ptc` 目录复制到暂存的 `code` 目录，不修改源码树或会话日志。当选定的官方版本提供 `code` 时，暂存步骤不会覆盖该目录，因此官方组合始终优先。
 

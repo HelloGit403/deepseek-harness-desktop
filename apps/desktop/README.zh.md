@@ -38,6 +38,6 @@ pnpm run desktop:dev
 pnpm run desktop:dist
 ```
 
-构建会从已打包的 `dsh` 应用解析完整的工作区依赖与必需 peer 图，创建一份提升后的生产部署，恢复 legacy deploy 遗漏的工作区包，并把包链接物化成文件。当暂存的 Harness 包未提供 `code` 预设时，构建会把当前 `ptc` 组合复制到该 ID，使保存了 `code` 的桌面会话头仍可被挂载；上游原生 `code` 预设始终优先。electron-builder 封装应用后，pack hook 会恢复其依赖遍历裁掉的 peer-only 包。随后构建会在操作系统分配的回环端口启动已打包可执行文件，并加载经过鉴权的完整 Web UI；缺少任何包或启动失败都会在接受 NSIS 安装包前终止发布。安装包写入 `apps/desktop/dist/`，安装后的应用会创建开始菜单与桌面快捷方式。服务端输出以 `desktop-server.log` 保存到 Electron 的平台日志目录中。
+构建会从已打包的 `dsh` 应用解析完整的工作区依赖与必需 peer 图，创建一份提升后的生产部署，恢复 legacy deploy 遗漏的工作区包，并把包链接物化成文件。当暂存的 Harness 包未提供 `code` 预设时，构建会把当前 `ptc` 组合复制到该 ID，使保存了 `code` 的桌面会话头仍可被挂载；上游原生 `code` 预设始终优先。暂存应用会包含安装原生包时所用的常规 Node.js 可执行文件及其许可证，使 Harness 服务使用匹配的原生模块 ABI，而不是 Electron 内置的 Node.js ABI。electron-builder 封装应用后，pack hook 会恢复其依赖遍历裁掉的 peer-only 包。随后构建会在操作系统分配的回环端口启动已打包运行时，并加载经过鉴权的完整 Web UI；缺少任何包或启动失败都会在接受 NSIS 安装包前终止发布。安装包写入 `apps/desktop/dist/`，安装后的应用会创建开始菜单与桌面快捷方式。服务端输出以 `desktop-server.log` 保存到 Electron 的平台日志目录中。
 
 维护者需要更新固定的官方版本、验证桌面适配，再推送 `v<版本号>` 标签，或手动运行 **Desktop Release** 工作流来发布对应的 GitHub Release。该标签是 `electron-updater` 能够发现候选版本的有效 SemVer，且版本必须与 `apps/desktop/package.json` 一致；更新元数据不完整时，工作流会拒绝发布不完整的更新通道。

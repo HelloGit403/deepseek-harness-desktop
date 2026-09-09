@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { test } from 'node:test'
-import { prepareReleaseWorkspace } from '../scripts/prepare-release-workspace.mjs'
+import {
+  prepareReleaseBundlerConfig,
+  prepareReleaseHostConfig,
+  prepareReleaseWorkspace,
+} from '../scripts/prepare-release-workspace.mjs'
 
 test('desktop release preserves upstream workspace configuration', () => {
   const workflowPath = process.env.DSH_DESKTOP_SOURCE_ROOT
@@ -10,8 +14,50 @@ test('desktop release preserves upstream workspace configuration', () => {
     : new URL('../../../.github/workflows/desktop-release.yml', import.meta.url)
   const workflow = readFileSync(workflowPath, 'utf8')
 
-  assert.match(workflow, /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml/u)
+  assert.match(
+    workflow,
+    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts/u,
+  )
   assert.doesNotMatch(workflow, /Copy-Item desktop-source\/pnpm-workspace\.yaml/u)
+})
+
+test('removes the replaced upstream desktop project from the bundler workspace', () => {
+  const source = "workspace: ['vendor/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],\n"
+  const updated = prepareReleaseBundlerConfig(source)
+
+  assert.equal(updated, "workspace: ['vendor/*', 'apps/cli', 'apps/desktop-host'],\n")
+  assert.throws(
+    () => prepareReleaseBundlerConfig("workspace: ['apps/cli'],\n"),
+    /does not include apps\/desktop/u,
+  )
+})
+
+test('removes the replaced upstream desktop project from the host build', () => {
+  const source = [
+    '{',
+    '  // The release adaptation preserves upstream JSONC comments.',
+    '  "references": [',
+    '    { "path": "./apps/cli" },',
+    '    { "path": "./apps/desktop-host" },',
+    '    { "path": "./apps/desktop" }',
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
+
+  const updated = prepareReleaseHostConfig(source)
+
+  assert.match(updated, /preserves upstream JSONC comments/u)
+  assert.match(updated, /\.\/apps\/desktop-host/u)
+  assert.doesNotMatch(updated, /"\.\/apps\/desktop"/u)
+  assert.throws(
+    () => prepareReleaseHostConfig('{"references":[]}\n'),
+    /does not reference \.\/apps\/desktop/u,
+  )
+  assert.throws(
+    () => prepareReleaseHostConfig('{}\n'),
+    /does not define project references/u,
+  )
 })
 
 test('adds desktop build permissions without replacing upstream permissions', () => {

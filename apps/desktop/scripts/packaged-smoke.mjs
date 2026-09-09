@@ -42,7 +42,7 @@ function authenticatedFetch() {
 /**
  * Start the packaged CLI, observe its bound URL, and load the assembled Web UI.
  *
- * @param {{ entry: string, executable: string, timeoutMs?: number }} options Packaged paths and timeout.
+ * @param {{ entry: string, executable: string, timeoutMs?: number }} options Packaged Node.js and Harness paths and timeout.
  * @returns {Promise<void>} Completion after the Web UI answers successfully.
  */
 export async function smokePackagedHarness(options) {
@@ -54,7 +54,6 @@ export async function smokePackagedHarness(options) {
       ...process.env,
       DSH_HOME: dataDir,
       DSH_TELEMETRY_DISABLED: '1',
-      ELECTRON_RUN_AS_NODE: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,

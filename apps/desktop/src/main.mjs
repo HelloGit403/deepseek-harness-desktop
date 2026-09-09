@@ -5,6 +5,7 @@ import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { desktopServerArgs, harnessReadyUrlFromOutput, probeHarness } from './harness-server.mjs'
+import { resolveNodeRuntime } from './node-runtime.mjs'
 import { DesktopUpdaterController, normalizeDesktopUpdateUrl } from './updater-controller.mjs'
 import { createWindowAppearanceController } from './window-appearance.mjs'
 
@@ -136,12 +137,15 @@ function startHarnessServer() {
   const logPath = join(app.getPath('logs'), 'desktop-server.log')
   const dshHome = process.env.DSH_HOME ?? join(app.getPath('userData'), 'harness-home')
   const log = createWriteStream(logPath, { flags: 'a' })
-  serverProcess = spawn(process.execPath, desktopServerArgs(resolveDshEntry(), APP_PORT), {
+  serverProcess = spawn(resolveNodeRuntime({
+    env: process.env,
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+  }), desktopServerArgs(resolveDshEntry(), APP_PORT), {
     cwd: app.getPath('documents'),
     env: {
       ...process.env,
       DSH_HOME: dshHome,
-      ELECTRON_RUN_AS_NODE: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,

@@ -4,6 +4,8 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeDesktopUpdateUrl } from '../src/updater-controller.mjs'
 import { installLegacyPresetAlias } from './legacy-preset-alias.mjs'
+import { runCommandWithRetry } from './run-command-with-retry.mjs'
+import { stageNodeRuntime } from './stage-node-runtime.mjs'
 import {
   assertStagedRuntimeClosure,
   loadWorkspacePackages,
@@ -70,12 +72,13 @@ const deployArgs = [
   '--prod',
   '--legacy',
 ]
+const deployEnv = { ...process.env, CI: process.env.CI ?? 'true' }
 try {
   if (process.env.npm_execpath !== undefined) {
-    run(process.execPath, [process.env.npm_execpath, ...deployArgs])
+    run(process.execPath, [process.env.npm_execpath, ...deployArgs], { env: deployEnv })
   }
   else {
-    run('pnpm', deployArgs, { shell: process.platform === 'win32' })
+    run('pnpm', deployArgs, { env: deployEnv, shell: process.platform === 'win32' })
   }
 }
 finally {
@@ -88,11 +91,17 @@ materializeStagedLinks(stageDir)
 assertStagedRuntimeClosure(stageDir, runtime.workspace)
 const legacyPreset = installLegacyPresetAlias(stageDir)
 console.log(`desktop: legacy code preset alias ${legacyPreset}`)
+await stageNodeRuntime({
+  licensePath: process.env.DSH_DESKTOP_NODE_LICENSE,
+  stageDir,
+})
+console.log(`desktop: staged Node.js ${process.version} runtime`)
 
 const stagedManifestPath = join(stageDir, 'package.json')
 const stagedManifest = JSON.parse(readFileSync(stagedManifestPath, 'utf8'))
 stagedManifest.build.directories.output = outputDir
 stagedManifest.build.afterPack = join(appDir, 'scripts', 'after-pack.cjs')
+stagedManifest.build.files = [...stagedManifest.build.files, 'runtime/**/*']
 const updateUrl = normalizeDesktopUpdateUrl(process.env.DSH_DESKTOP_UPDATE_URL)
 if (updateUrl !== undefined) {
   stagedManifest.build.publish = [{ provider: 'generic', url: updateUrl }]
@@ -100,10 +109,26 @@ if (updateUrl !== undefined) {
 writeFileSync(stagedManifestPath, `${JSON.stringify(stagedManifest, undefined, 2)}\n`)
 
 const builderCli = join(appDir, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js')
-run(process.execPath, [builderCli, '--projectDir', stageDir, '--win', 'nsis', '--x64', '--publish', 'never'])
+const builderStatus = runCommandWithRetry(
+  process.execPath,
+  [builderCli, '--projectDir', stageDir, '--win', 'nsis', '--x64', '--publish', 'never'],
+  {
+    attempts: 3,
+    beforeRetry: ({ attempt, status }) => {
+      console.warn(`desktop: installer attempt ${attempt} exited with ${status}; retrying`)
+      removeGeneratedDirectory(outputDir)
+    },
+    spawnOptions: {
+      cwd: rootDir,
+      env: process.env,
+      stdio: 'inherit',
+    },
+  },
+)
+if (builderStatus !== 0) process.exit(builderStatus)
 const unpackedDir = join(outputDir, 'win-unpacked')
 await smokePackagedHarness({
-  executable: join(unpackedDir, 'DeepSeek Harness.exe'),
+  executable: join(unpackedDir, 'resources', 'app', 'runtime', 'node.exe'),
   entry: join(unpackedDir, 'resources', 'app', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
 })
 console.log('desktop: packaged Harness startup smoke passed')
