@@ -12,8 +12,13 @@ test('desktop releases use tags electron-updater can parse as SemVer', () => {
 })
 
 test('desktop release candidates advance monotonically', () => {
-  assert.equal(nextDesktopVersion('0.1.2-rc.5'), '0.1.2-rc.6')
-  assert.throws(() => nextDesktopVersion('0.1.2'), /not an rc version/u)
+  assert.equal(nextDesktopVersion('0.1.5-rc.5', '0.1.5-rc.1'), '0.1.5-rc.6')
+  assert.equal(nextDesktopVersion('0.1.5-rc.1', '0.1.5-rc.2'), '0.1.5-rc.2')
+  assert.equal(nextDesktopVersion('0.1.2-rc.15', '0.1.5-rc.1'), '0.1.5-rc.1')
+  assert.equal(nextDesktopVersion('0.1.5-rc.7', '0.1.6'), '0.1.6-rc.1')
+  assert.throws(() => nextDesktopVersion('0.1.2', '0.1.5-rc.1'), /not an rc version/u)
+  assert.throws(() => nextDesktopVersion('0.1.5-rc.1', 'invalid'), /not valid SemVer/u)
+  assert.throws(() => nextDesktopVersion('0.1.5-rc.1', '0.1.4-rc.9'), /regressed/u)
 })
 
 test('upstream advancement records one revision and one release version', (context) => {
@@ -28,15 +33,17 @@ test('upstream advancement records one revision and one release version', (conte
   const version = advanceUpstream({
     commit: '2222222222222222222222222222222222222222',
     desktopPath,
+    officialVersion: '0.1.5-rc.1',
     upstreamPath,
   })
 
-  assert.equal(version, '0.1.2-rc.6')
+  assert.equal(version, '0.1.5-rc.1')
   assert.equal(JSON.parse(readFileSync(desktopPath, 'utf8')).version, version)
   assert.equal(JSON.parse(readFileSync(upstreamPath, 'utf8')).commit, '2222222222222222222222222222222222222222')
   assert.throws(() => advanceUpstream({
     commit: '2222222222222222222222222222222222222222',
     desktopPath,
+    officialVersion: '0.1.5-rc.1',
     upstreamPath,
   }), /already pinned/u)
 })

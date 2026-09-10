@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve official branch head
+      - name: Resolve official branch head and desktop version
         id: upstream
         shell: pwsh
         run: |
@@ -36,15 +36,24 @@ jobs:
           if ($latest -notmatch '^[0-9a-f]{40}$') {
             throw "Official branch returned an invalid commit: $latest"
           }
+          $packageUrl = "https://raw.githubusercontent.com/$($source.repository)/$latest/apps/desktop/package.json"
+          $package = Invoke-RestMethod -Uri $packageUrl
+          if ($package.version -isnot [string] -or $package.version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$') {
+            throw "Official desktop package returned an invalid version: $($package.version)"
+          }
           "latest=$latest" >> $env:GITHUB_OUTPUT
+          "version=$($package.version)" >> $env:GITHUB_OUTPUT
           "changed=$($latest -ne $source.commit)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
 
       - name: Advance pinned revision and desktop version
         if: steps.upstream.outputs.changed == 'true'
         id: advance
         shell: pwsh
+        env:
+          OFFICIAL_COMMIT: ${{ steps.upstream.outputs.latest }}
+          OFFICIAL_VERSION: ${{ steps.upstream.outputs.version }}
         run: |
-          $version = node apps/desktop/scripts/advance-upstream.mjs '${{ steps.upstream.outputs.latest }}'
+          $version = node apps/desktop/scripts/advance-upstream.mjs $env:OFFICIAL_COMMIT $env:OFFICIAL_VERSION
           if ($LASTEXITCODE -ne 0) { throw 'Unable to advance the desktop release identity.' }
           "version=$version" >> $env:GITHUB_OUTPUT
           git config user.name 'github-actions[bot]'

@@ -11,6 +11,8 @@ test('scheduled sync runs every three hours and uses the non-failing release loo
   const workflow = readFileSync(workflowPath, 'utf8')
 
   assert.match(workflow, /cron: '17 \*\/3 \* \* \*'/u)
+  assert.match(workflow, /raw\.githubusercontent\.com\/\$\(\$source\.repository\)\/\$latest\/apps\/desktop\/package\.json/u)
+  assert.match(workflow, /advance-upstream\.mjs \$env:OFFICIAL_COMMIT \$env:OFFICIAL_VERSION/u)
   assert.match(workflow, /node apps\/desktop\/scripts\/github-release-exists\.mjs/u)
   assert.doesNotMatch(workflow, /gh release view/u)
 })

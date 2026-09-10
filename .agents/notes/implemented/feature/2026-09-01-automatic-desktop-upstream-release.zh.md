@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-一个定时 GitHub 工作流每三小时检查配置的官方分支头。分支头变化时，它会在同一个提交中推进 `.github/desktop-upstream.json` 与桌面 `rc` 版本，把该提交推送到 `main`，再显式派发现有的「Desktop Release」工作流。流程不依赖 `GITHUB_TOKEN` 产生的 push 去触发另一个工作流。
+一个定时 GitHub 工作流每三小时检查配置的官方分支头与桌面包版本。分支头变化时，它会推进 `.github/desktop-upstream.json`，使桌面发布版本的主版本号、次版本号与补丁号和官方桌面包保持一致，再把两项变更推送到 `main`，然后显式派发现有的「Desktop Release」工作流。这三个版本号不变时，后续官方提交会单调递增桌面 `rc` 编号。流程不依赖 `GITHUB_TOKEN` 产生的 push 去触发另一个工作流。
 
 同步流程还会查询与当前桌面版本匹配的发布。如果该发布因构建失败、中断或派发失败而缺失，后续运行会再次派发同一版本，而不是继续递增。这样，仓库记录期望的官方版本，GitHub Releases 则记录经过测试的桌面产物是否真实存在。
 
