@@ -4,12 +4,13 @@ import { resolve } from 'node:path'
 import { test } from 'node:test'
 import { githubReleaseExists } from '../scripts/github-release-exists.mjs'
 
-test('scheduled sync uses the non-failing release lookup', () => {
+test('scheduled sync runs every three hours and uses the non-failing release lookup', () => {
   const workflowPath = process.env.DSH_DESKTOP_SOURCE_ROOT
     ? resolve(process.env.DSH_DESKTOP_SOURCE_ROOT, '.github/workflows/desktop-upstream-sync.yml')
     : new URL('../../../.github/workflows/desktop-upstream-sync.yml', import.meta.url)
   const workflow = readFileSync(workflowPath, 'utf8')
 
+  assert.match(workflow, /cron: '17 \*\/3 \* \* \*'/u)
   assert.match(workflow, /node apps\/desktop\/scripts\/github-release-exists\.mjs/u)
   assert.doesNotMatch(workflow, /gh release view/u)
 })

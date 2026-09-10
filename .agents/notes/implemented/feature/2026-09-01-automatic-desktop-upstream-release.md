@@ -10,7 +10,7 @@ The desktop application can install releases from its GitHub channel, but publis
 
 ## Decision
 
-A scheduled GitHub workflow checks the configured official branch head every six hours. A changed head advances `.github/desktop-upstream.json` and the desktop `rc` version in one commit, pushes that commit to `main`, and explicitly dispatches the existing Desktop Release workflow. Pushes made by `GITHUB_TOKEN` are not relied on to trigger another workflow.
+A scheduled GitHub workflow checks the configured official branch head every three hours. A changed head advances `.github/desktop-upstream.json` and the desktop `rc` version in one commit, pushes that commit to `main`, and explicitly dispatches the existing Desktop Release workflow. Pushes made by `GITHUB_TOKEN` are not relied on to trigger another workflow.
 
 The sync also queries the release matching the current desktop version. If that release is missing after a build failure, interruption, or dispatch failure, a later run dispatches the same version again instead of incrementing it. This makes the repository record the desired official revision while GitHub Releases records whether a tested desktop artifact actually exists.
 

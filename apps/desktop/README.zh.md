@@ -16,7 +16,7 @@ Windows 桌面壳使用与 Harness 客户端匹配的深色原生标题栏。当
 
 正式构建默认使用公开的 [`HelloGit403/deepseek-harness-desktop`](https://github.com/HelloGit403/deepseek-harness-desktop/releases) GitHub Releases 通道。「Desktop Release」工作流会检出 `.github/desktop-upstream.json` 记录的精确 DeepSeek Harness 官方版本，应用本仓库的桌面外壳与桌面专属设置集成，再一起发布 `latest.yml`、NSIS 安装包及其 blockmap。桌面设置面板会在启动后检查这个通道，并支持由用户明确触发的检查、下载、校验后暂存，以及安装并重启操作。
 
-「Desktop Upstream Sync」工作流每六小时检查一次配置的官方分支。分支头发生变化时，工作流会记录新提交、递增桌面候选版本，并派发「Desktop Release」。如果对应发布因失败或中断而缺失，下一次同步会在不再次递增版本的情况下重新派发。只有完整官方构建、桌面测试、安装器构建与封装后启动冒烟测试全部通过，版本才会出现在应用更新通道中。
+「Desktop Upstream Sync」工作流每三小时检查一次配置的官方分支。分支头发生变化时，工作流会记录新提交、递增桌面候选版本，并派发「Desktop Release」。如果对应发布因失败或中断而缺失，下一次同步会在不再次递增版本的情况下重新派发。只有完整官方构建、桌面测试、安装器构建与封装后启动冒烟测试全部通过，版本才会出现在应用更新通道中。
 
 只有部署方需要用另一个通用 HTTPS 发布地址替换内置 GitHub 通道时，才在打包时设置 `DSH_DESKTOP_UPDATE_URL`。开发构建或未打包构建仍允许手动检查，但不会访问发布通道。
 
