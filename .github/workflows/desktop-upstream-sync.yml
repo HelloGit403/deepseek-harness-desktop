@@ -2,7 +2,7 @@ name: Desktop Upstream Sync
 
 on:
   schedule:
-    - cron: '17 */3 * * *'
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
   workflow_dispatch:
 
 permissions:
