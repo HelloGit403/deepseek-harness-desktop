@@ -18,6 +18,14 @@ test('desktop release preserves upstream workspace configuration', () => {
     workflow,
     /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts/u,
   )
+  assert.match(
+    workflow,
+    /git -C official apply --check --whitespace=error-all \$featurePatch/u,
+  )
+  assert.match(
+    workflow,
+    /git -C official apply --whitespace=error-all \$featurePatch/u,
+  )
   assert.doesNotMatch(workflow, /Copy-Item desktop-source\/pnpm-workspace\.yaml/u)
 })
 

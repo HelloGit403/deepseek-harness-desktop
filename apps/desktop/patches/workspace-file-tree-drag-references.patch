@@ -1,0 +1,706 @@
+diff --git a/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.i18n.yaml b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.i18n.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..c385177933eb93bdc806043b9097260ec3116565
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.i18n.yaml
+@@ -0,0 +1,6 @@
++# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
++# side as of the last confirmed-consistent state. Both languages carry equal authority;
++# after editing either side, bring the other along and re-record with:
++#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.md
++2026-09-12-workspace-file-tree-drag-references.md: 1a6fb69c142aa95c80b1b86409df471def2d40a4
++2026-09-12-workspace-file-tree-drag-references.zh.md: 6dbf02c293b899189c519aa9a3c54a6896d44374
+diff --git a/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.md b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..1a6fb69c142aa95c80b1b86409df471def2d40a4
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.md
+@@ -0,0 +1,29 @@
++# Agent Note: File-tree drags insert composer references
++
++Status: implemented
++
++English | [中文](2026-09-12-workspace-file-tree-drag-references.zh.md)
++
++## Problem
++
++The right Sidebar exposes workspace files and the composer accepts operating-system file drops, but dragging a file row from the Sidebar into the composer has no transferable identity. Treating that gesture as a byte upload would duplicate a file already governed by the Session workspace, hide later workspace edits behind an uploaded copy, and bypass the existing structured file-reference path.
++
++## Decision
++
++File rows publish their existing Session-scoped `dsh-resource://file` address under a dedicated `DataTransfer` type. The shared attachment drop target recognizes that type in addition to browser `Files` and forwards the address to the composer owner. Browser `Files` retain the existing attachment-intake path.
++
++The composer accepts only non-empty, relative file addresses owned by its current Session. It converts an accepted address into the same atomic reference chip produced by the file-reference source and inserts it over the live editor selection. Foreign-Session addresses, external URLs, absolute paths, locked composers, and composers without attachment intake are ignored.
++
++The transfer carries a resource address instead of serialized file bytes or untrusted display text. The existing reference codec therefore remains responsible for clipboard text, submission text, Session logging, reload projection, and model-visible file resolution.
++
++## Alternatives considered
++
++**Upload the workspace file as an attachment.** Rejected because the source already belongs to the Session workspace. Uploading creates a second byte identity and changes the gesture from “reference this file” to “copy this version of the file.”
++
++**Use `text/plain` or `text/uri-list`.** Rejected because unrelated browser and application drags commonly populate those formats. A product-specific type identifies the intended internal gesture; the composer still parses and validates its resource address.
++
++**Pass a workspace path directly between the Sidebar and conversation packages.** Rejected because the resource address already carries the Session scope needed to prevent cross-Session insertion and is the file viewer's established identity.
++
++## Consequences
++
++Dragging a workspace file inserts a structured reference at the current selection and shows the existing full-page drop affordance. Clicking the same row still opens the file preview. Directories remain click-only. Unit tests cover transfer production, drop routing, reference conversion, and rejection cases; the real Web composition drags a nested workspace row into the resident composer.
+diff --git a/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.zh.md b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.zh.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..6dbf02c293b899189c519aa9a3c54a6896d44374
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-12-workspace-file-tree-drag-references.zh.md
+@@ -0,0 +1,29 @@
++# Agent Note: 文件树拖动插入 composer 引用
++
++Status: implemented
++
++[English](2026-09-12-workspace-file-tree-drag-references.md) | 中文
++
++## 问题
++
++右侧 Sidebar 暴露工作区文件，composer 也接受操作系统文件拖放，但从 Sidebar 把文件行拖入 composer 时没有可传递的身份。如果把这个手势当成字节上传，就会复制一个已受 Session 工作区管理的文件，以上传副本遮蔽之后的工作区编辑，并绕过现有的结构化文件引用路径。
++
++## 决策
++
++文件行使用专用 `DataTransfer` 类型发布现有的 Session 范围 `dsh-resource://file` 地址。共享附件拖放目标除了浏览器 `Files` 之外也识别该类型，并把地址转交给 composer 持有方。浏览器 `Files` 保留现有附件接收路径。
++
++composer 只接受属于当前 Session 的非空相对文件地址。它把已接受的地址转换为文件引用来源生成的同一种原子引用 chip，并覆盖编辑器的实时选区插入。其他 Session 的地址、外部 URL、绝对路径、已锁定的 composer，以及不接收附件的 composer 都会忽略该地址。
++
++传输内容是资源地址，而不是序列化文件字节或不受信任的显示文本。因此，现有引用 codec 仍负责剪贴板文本、提交文本、Session 日志、重新加载投影和模型可见的文件解析。
++
++## 曾考虑的替代方案
++
++**把工作区文件作为附件上传。** 否决，因为源文件已经属于 Session 工作区。上传会创建第二个字节身份，并把手势从「引用这个文件」改为「复制这个版本的文件」。
++
++**使用 `text/plain` 或 `text/uri-list`。** 否决，因为无关的浏览器和应用拖动经常填充这些格式。产品专用类型可以识别预期的内部手势；composer 仍会解析并校验其中的资源地址。
++
++**在 Sidebar 与对话包之间直接传递工作区路径。** 否决，因为资源地址已经携带阻止跨 Session 插入所需的 Session 范围，也是文件查看器已经使用的身份。
++
++## 后果
++
++拖动工作区文件会在当前选区插入结构化引用，并显示现有的全页面拖放提示。单击同一行仍会打开文件预览。目录仍然只能单击。单元测试覆盖传输生成、拖放路由、引用转换与拒绝情况；真实 Web 组合会把嵌套工作区行拖入常驻 composer。
+diff --git a/apps/web/tests/sidebar-right.e2e.ts b/apps/web/tests/sidebar-right.e2e.ts
+index d1387af303ae67acb34056cbd33400139680085b..0ec273c23ca92f855ef5c25577a0e86bc5a9cc18 100644
+--- a/apps/web/tests/sidebar-right.e2e.ts
++++ b/apps/web/tests/sidebar-right.e2e.ts
+@@ -26,7 +26,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
+ import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+ import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
+ import {
+-  connectFreshWorkspace, newEnglishPage, saveFailureShot, ZH_BROWSER_LOCALE,
++  connectFreshWorkspace, newEnglishPage, saveFailureShot, writeComposerDraft, ZH_BROWSER_LOCALE,
+ } from './support.ts'
+ 
+ /** The produced file the seeded turn writes, and what the preview should show. */
+@@ -417,6 +417,32 @@ describe('web e2e: shipped right Sidebar', () => {
+       expect(tripwire.warnings).toEqual([])
+     })
+ 
++    it('drags a workspace file into the composer as a structured reference', async () => {
++      onTestFailed(() => saveFailureShot(page, 'web-e2e-sidebar-file-composer-drag'))
++      const column = page.locator('[data-rightbar-col]')
++      await ensureExpanded(page, column)
++      const tree = column.locator('[data-files-state="tree"]')
++      await tree.waitFor({ state: 'visible' })
++      const file = tree.locator('[data-files-entry="file"] > button').filter({ hasText: new RegExp(`^${SAMPLE_NAME}$`) })
++      await file.waitFor({ state: 'visible' })
++
++      const input = page.locator('[data-composer-input]').first()
++      await writeComposerDraft(page, input, 'Review ')
++      await file.dragTo(input)
++
++      const chip = input.locator('[data-composer-chip]').last()
++      await expect.poll(() => chip.textContent()).toBe(SAMPLE_NAME)
++      await expect.poll(() => chip.locator('svg').count()).toBe(1)
++      await expect.poll(() => input.textContent()).toBe(`Review ${SAMPLE_NAME} `)
++
++      await input.click()
++      await page.keyboard.press('ControlOrMeta+a')
++      await page.keyboard.press('Backspace')
++      await expect.poll(() => input.textContent()).toBe('')
++      expect(tripwire.pageErrors).toEqual([])
++      expect(tripwire.warnings).toEqual([])
++    })
++
+     it('covers the viewport in fullscreen without changing the underlying columns', async () => {
+       onTestFailed(() => saveFailureShot(page, 'web-e2e-sidebar-right-mode'))
+       const frame = page.locator('[class*="frame"]').first()
+diff --git a/packages/client/ui-attachment/README.i18n.yaml b/packages/client/ui-attachment/README.i18n.yaml
+index d573ab686a9e767e739d360e748b5e55cea89d8b..df932a9b36a93916b3ce6e9f740fb541ebe16620 100644
+--- a/packages/client/ui-attachment/README.i18n.yaml
++++ b/packages/client/ui-attachment/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-attachment/README.md
+-README.md: c2b429b5ea2f190ab113697aa97eb35c7adcaa29
+-README.zh.md: e2d6b3d45eaee7d652c33f223cfb8f061c69c72a
++README.md: f5f8dd43d989772851aaf54f0bba2930e025ac7a
++README.zh.md: af89e5a3e22cefe866105ccf6ab6b4371dc99a72
+diff --git a/packages/client/ui-attachment/README.md b/packages/client/ui-attachment/README.md
+index c2b429b5ea2f190ab113697aa97eb35c7adcaa29..f5f8dd43d989772851aaf54f0bba2930e025ac7a 100644
+--- a/packages/client/ui-attachment/README.md
++++ b/packages/client/ui-attachment/README.md
+@@ -37,7 +37,7 @@ In Chat, one user message presents files and images in a right-aligned wrapping
+ 
+ ### Drop overlay
+ 
+-While a file drag is over the page, the full-viewport overlay announces the drop: illustration, title, and a limits line when drops are accepted. The overlay only shows state — the owner's document-level listeners decide accept or reject.
++While an operating-system file drag or a workspace-tree file-resource drag is over the page, the full-viewport overlay announces the drop: illustration, title, and a limits line when drops are accepted. The owner routes operating-system files to attachment intake and a current-Session workspace resource to structured reference insertion. The overlay only shows state — the owner's document-level listeners decide accept or reject.
+ 
+ -----
+ 
+diff --git a/packages/client/ui-attachment/README.zh.md b/packages/client/ui-attachment/README.zh.md
+index e2d6b3d45eaee7d652c33f223cfb8f061c69c72a..af89e5a3e22cefe866105ccf6ab6b4371dc99a72 100644
+--- a/packages/client/ui-attachment/README.zh.md
++++ b/packages/client/ui-attachment/README.zh.md
+@@ -37,7 +37,7 @@ Chat 中的一条用户消息把文件与图片放在同一个靠右、可换行
+ 
+ ### 拖放遮罩
+ 
+-文件拖到页面上方时，全视口遮罩显示拖放提示，包括插画和标题；接受拖放时还会显示一行限制说明。遮罩只呈现状态——是否接受由持有方的文档级监听器决定。
++操作系统文件或工作区树的文件资源拖到页面上方时，全视口遮罩显示拖放提示，包括插画和标题；接受拖放时还会显示一行限制说明。持有方把操作系统文件路由到附件接收，并把当前会话的工作区资源路由到结构化引用插入。遮罩只呈现状态——是否接受由持有方的文档级监听器决定。
+ 
+ -----
+ 
+diff --git a/packages/client/ui-attachment/package.json b/packages/client/ui-attachment/package.json
+index f994246609d04d81da66ecdbbaffd2ef0ddc27e4..d524bbeeba3b14e59f1c5606f4ff8999ceaf9966 100644
+--- a/packages/client/ui-attachment/package.json
++++ b/packages/client/ui-attachment/package.json
+@@ -56,6 +56,7 @@
+     "react-dom": "^18.2.0",
+     "@deepseek-ai/dsh-attachment": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-tool": "workspace:^",
++    "@deepseek-ai/dsh-util-workspace-path": "workspace:^",
+     "clsx": "^2.0.0"
+   },
+   "files": [
+diff --git a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
+index fd469195bf7e846968aa280fd8e6d08f68be9861..75f1b3043a4f5f355ffd114d3f0c7e08c40beb29 100644
+--- a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
++++ b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
+@@ -3,6 +3,7 @@ import type {
+   ComposerAttachment, ComposerAttachmentsProps, ComposerImageAttachment,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { IconCloseFill14 } from '@deepseek-ai/dsh-client-ui-primitives'
++import { WORKSPACE_FILE_DRAG_TYPE } from '@deepseek-ai/dsh-util-workspace-path'
+ import { AttachmentRail } from '../AttachmentRail.tsx'
+ import type { AttachmentRailItem } from '../AttachmentRail.tsx'
+ import { DropOverlay } from '../DropOverlay.tsx'
+@@ -18,7 +19,8 @@ interface ComposerRailItem extends AttachmentRailItem {
+ 
+ /** Draft image previews, pending-file cards, drop target, and original-image preview. */
+ export function ComposerAttachments({
+-  attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, onRetryFile, dropLimits, t,
++  attachments, canAcceptDrop, onAddFiles, onAddWorkspaceFile,
++  onRemoveAttachment, uploads, onRetryFile, dropLimits, t,
+ }: ComposerAttachmentsProps) {
+   const [preview, setPreview] = useState<ComposerImageAttachment | null>(null)
+   const [dragActive, setDragActive] = useState(false)
+@@ -31,7 +33,8 @@ export function ComposerAttachments({
+   useEffect(() => {
+     const fileTransfer = (event: globalThis.DragEvent): DataTransfer | null => {
+       const dataTransfer = event.dataTransfer
+-      if (dataTransfer === null || !dataTransfer.types.includes('Files')) return null
++      if (dataTransfer === null || (!dataTransfer.types.includes('Files')
++        && !dataTransfer.types.includes(WORKSPACE_FILE_DRAG_TYPE))) return null
+       return dataTransfer
+     }
+     const reset = (): void => {
+@@ -63,7 +66,13 @@ export function ComposerAttachments({
+       if (dataTransfer === null) return
+       event.preventDefault()
+       reset()
+-      if (canAcceptDrop) onAddFiles([...dataTransfer.files])
++      if (!canAcceptDrop) return
++      if (dataTransfer.types.includes('Files')) {
++        onAddFiles([...dataTransfer.files])
++        return
++      }
++      const address = dataTransfer.getData(WORKSPACE_FILE_DRAG_TYPE)
++      if (address !== '') onAddWorkspaceFile(address)
+     }
+     document.addEventListener('dragenter', onDragEnter)
+     document.addEventListener('dragover', onDragOver)
+@@ -77,7 +86,7 @@ export function ComposerAttachments({
+       document.removeEventListener('drop', onDrop)
+       window.removeEventListener('dragend', reset)
+     }
+-  }, [canAcceptDrop, onAddFiles])
++  }, [canAcceptDrop, onAddFiles, onAddWorkspaceFile])
+ 
+   const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
+     id: attachment.id,
+diff --git a/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx b/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
+index c0d0920c525633413cc82979e516453ea926f3ad..1d64be7f72f2bf16dbf339ef916eeb0e2c746a6b 100644
+--- a/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
++++ b/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
+@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render } from '@testing-library/react'
+ import type {
+   ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import { WORKSPACE_FILE_DRAG_TYPE } from '@deepseek-ai/dsh-util-workspace-path'
+ import { ComposerAttachments } from '../src/client/ComposerAttachments.tsx'
+ 
+ beforeEach(() => {
+@@ -79,6 +80,7 @@ function props(overrides: Partial<ComposerAttachmentsOwnerProps> = {}): Composer
+     attachments: [],
+     canAcceptDrop: true,
+     onAddFiles: () => {},
++    onAddWorkspaceFile: () => {},
+     onRemoveAttachment: () => {},
+     uploads: {},
+     onRetryFile: () => {},
+@@ -114,6 +116,26 @@ describe('ComposerAttachments', () => {
+     expect(view.queryByRole('status')).toBeNull()
+   })
+ 
++  it('routes a workspace-tree file address through the same document drop target', () => {
++    const onAddWorkspaceFile = vi.fn()
++    const view = render(<ComposerAttachments {...props({ onAddWorkspaceFile })} />)
++    const address = 'dsh-resource://file/session/s1/docs/review.md'
++    const dataTransfer = {
++      types: [WORKSPACE_FILE_DRAG_TYPE],
++      files: [],
++      dropEffect: 'none',
++      getData: (type: string) => type === WORKSPACE_FILE_DRAG_TYPE ? address : '',
++    }
++
++    expect(fireEvent.dragEnter(document.body, { dataTransfer })).toBe(false)
++    expect(view.getByRole('status')).toBeTruthy()
++    expect(fireEvent.dragOver(document.body, { dataTransfer })).toBe(false)
++    expect(dataTransfer.dropEffect).toBe('copy')
++    expect(fireEvent.drop(document.body, { dataTransfer })).toBe(false)
++    expect(onAddWorkspaceFile).toHaveBeenCalledWith(address)
++    expect(view.queryByRole('status')).toBeNull()
++  })
++
+   it('tracks nested file drags and clears an aborted drag', () => {
+     const view = render(<ComposerAttachments {...props()} />)
+     const dataTransfer = { types: ['Files'], files: [], dropEffect: 'none' }
+diff --git a/packages/client/ui-attachment/tsconfig.json b/packages/client/ui-attachment/tsconfig.json
+index d4586db8ec4920e3850ddf3ff234d869abd62846..3bef4c5807b92b0ad2dc46be210432bf00ae1545 100644
+--- a/packages/client/ui-attachment/tsconfig.json
++++ b/packages/client/ui-attachment/tsconfig.json
+@@ -34,6 +34,9 @@
+     },
+     {
+       "path": "../ui-primitives"
++    },
++    {
++      "path": "../../util/workspace-path"
+     }
+   ]
+ }
+diff --git a/packages/client/ui-conversation/README.i18n.yaml b/packages/client/ui-conversation/README.i18n.yaml
+index 71555a9632d82ef097f22659a05b175364e4cb08..ca6705525badaf07812aa3ce5401e076059463ab 100644
+--- a/packages/client/ui-conversation/README.i18n.yaml
++++ b/packages/client/ui-conversation/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-conversation/README.md
+-README.md: 8d68dfdb61943c7c45b38d9244134edecc86a593
+-README.zh.md: b1d548ba8fc9276a6864548802a45796e74c0c7a
++README.md: 493072b5d6afa27614e61c76b4e0e55c1535ca08
++README.zh.md: d0a1c183d6222ee693b19979eb57bcd7dbfdcf86
+diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
+index 8d68dfdb61943c7c45b38d9244134edecc86a593..493072b5d6afa27614e61c76b4e0e55c1535ca08 100644
+--- a/packages/client/ui-conversation/README.md
++++ b/packages/client/ui-conversation/README.md
+@@ -48,7 +48,7 @@ View selection is deterministic: a registered persisted selection wins, otherwis
+ 
+ The shell reads the persisted View preference before rendering when a Session first binds or a cached Session becomes current, activates the registered preferred View or Chat fallback, and activates later tab or focus selections before committing them to the store. A blank Session still omits the `conversation.view` slot; no unselected target is activated.
+ 
+-The resident composer survives no-Session and Session transitions. Whitespace hides its placeholder; a whitespace-only draft without attachments cannot be sent. The no-Session state keeps the same composer surface mounted but inert while the Workspace picker connects a blank Session. The surface is a shell-owned Lexical editor: reference chips are atomic decorator nodes carrying the owner's serialization identity (submission expands them through the owner codec), claimed slash commands stay styled leading text, folder text references carry the folder glyph as an icon prefix, and the draft's clipboard projection is mirrored into the per-Session Conversation store. Queue operations address exact queue occurrences through the scoped `ctx.conversation` service; queue previews render sent text through the shared inline reference projection from `ui-primitives` (wire session forms fold to their label) and show local or durable images and files in original attachment order. Images use thumbnails; files use compact name-and-size cards. An edit exposes the literal sent text, and durable thumbnails resolve through the session image URL cache. Busy Enter behavior is stored in the Host-backed `ui-conversation` settings namespace.
++The resident composer survives no-Session and Session transitions. Whitespace hides its placeholder; a whitespace-only draft without attachments cannot be sent. The no-Session state keeps the same composer surface mounted but inert while the Workspace picker connects a blank Session. The surface is a shell-owned Lexical editor: reference chips are atomic decorator nodes carrying the owner's serialization identity (submission expands them through the owner codec), claimed slash commands stay styled leading text, folder text references carry the folder glyph as an icon prefix, and the draft's clipboard projection is mirrored into the per-Session Conversation store. A file dragged from the current Session's workspace tree becomes the same structured file-reference chip at the live selection; foreign-Session, external, and absolute resource paths are ignored. Queue operations address exact queue occurrences through the scoped `ctx.conversation` service; queue previews render sent text through the shared inline reference projection from `ui-primitives` (wire session forms fold to their label) and show local or durable images and files in original attachment order. Images use thumbnails; files use compact name-and-size cards. An edit exposes the literal sent text, and durable thumbnails resolve through the session image URL cache. Busy Enter behavior is stored in the Host-backed `ui-conversation` settings namespace.
+ 
+ Default sends commit optimistically: Enter clears the draft, occurrence table, and undo history in the same transaction, keeps the composer in `plain`, and runs the send as a detached attempt, so typing and further sends continue during the flight. `sendSession` registers a Session submission echo (`session.beginSubmission`) with the delivery mode before serializing, preserving selected image and file order in `pendingSubmissions`; Session derives the placement from that mode and its current running state, so idle sends use the transcript, busy Queue sends use QueueDock, and busy Steer sends use the pending-steering surface. It then yields one paint, encodes images through the browser's native `FileReader` data-URL path, and cites staged file receipts. Command submissions use the same receipts for generic files, so sending `/goal` or `/plan` never reads those browser files again. The prompt reuses the submission `requestId`; queue and history observation by that `rpcId` retires the echo once. Concurrent failures are restored together in submission order until the user edits the restored content; command submissions keep the frozen `submitting` phase. Detached attempts retain their attachment ids through admission and Session scope disposal. An observed retirement immediately exposes each image preview through the durable cache, replaces it with the canonical URL after fetching the admitted attachment, revokes each URL after its use ends, and releases file cards. Selected generic files enter one FIFO background-upload queue; `maxConcurrentFileUploads` defaults to two active Worker transports, the Conversation service retains queued and active operations plus byte progress across Session navigation, and removing a draft skips its queued transfer or aborts its active transport. Continuable subagents disable attachment intake and skip local echoes because their transport does not preserve the browser request id.
+ 
+diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
+index b1d548ba8fc9276a6864548802a45796e74c0c7a..d0a1c183d6222ee693b19979eb57bcd7dbfdcf86 100644
+--- a/packages/client/ui-conversation/README.zh.md
++++ b/packages/client/ui-conversation/README.zh.md
+@@ -48,7 +48,7 @@ View 选择规则固定：有效且已注册的持久化选择优先，其次是
+ 
+ Session 首次绑定或缓存的 Session 成为 current 时，shell 会在渲染前读取持久化 View 偏好，激活已注册的偏好 View 或 Chat fallback，并在后续 tab 或 focus 选择写入 store 前先激活对应 target。blank Session 仍不渲染 `conversation.view` slot；未选中的 target 不会激活。
+ 
+-常驻 composer 在无 Session 与有 Session 之间保持挂载。输入空白字符会隐藏占位提示；没有附件的纯空白草稿无法发送。无 Session 时，同一个编辑器表面保持 inert，Workspace picker 连接 blank Session。该表面是 shell 所有的 Lexical 编辑器：引用 chip 是携带 owner 序列化身份的原子 decorator 节点（提交时经 owner codec 展开），已认领的 slash command 保持为带样式的行首文本，文件夹文本引用以图标前缀携带文件夹图形，草稿的剪贴板投影镜像到逐 Session Conversation store。Queue 操作通过 scoped `ctx.conversation` service 寻址准确的 queue occurrence；queue 预览经 `ui-primitives` 的共享行内引用投影渲染已发送文本（wire 会话形式折叠为其标签），并按原始附件顺序展示本地或持久化的图片和文件。图片使用缩略图，文件使用紧凑的名称与大小卡片。编辑态展示字面发送文本，持久化缩略图通过会话图片 URL 缓存解析。繁忙时 Enter 行为保存在 Host-backed `ui-conversation` settings namespace。
++常驻 composer 在无 Session 与有 Session 之间保持挂载。输入空白字符会隐藏占位提示；没有附件的纯空白草稿无法发送。无 Session 时，同一个编辑器表面保持 inert，Workspace picker 连接 blank Session。该表面是 shell 所有的 Lexical 编辑器：引用 chip 是携带 owner 序列化身份的原子 decorator 节点（提交时经 owner codec 展开），已认领的 slash command 保持为带样式的行首文本，文件夹文本引用以图标前缀携带文件夹图形，草稿的剪贴板投影镜像到逐 Session Conversation store。从当前 Session 工作区树拖来的文件会在实时选区变为同一种结构化文件引用 chip；其他 Session、外部地址与绝对资源路径会被忽略。Queue 操作通过 scoped `ctx.conversation` service 寻址准确的 queue occurrence；queue 预览经 `ui-primitives` 的共享行内引用投影渲染已发送文本（wire 会话形式折叠为其标签），并按原始附件顺序展示本地或持久化的图片和文件。图片使用缩略图，文件使用紧凑的名称与大小卡片。编辑态展示字面发送文本，持久化缩略图通过会话图片 URL 缓存解析。繁忙时 Enter 行为保存在 Host-backed `ui-conversation` settings namespace。
+ 
+ 默认发送采用乐观提交：Enter 在同一事务里清空草稿、occurrence 表和撤销历史，composer 保持 `plain`，发送作为 detached attempt 运行，发送期间可以继续输入和提交。`sendSession` 在序列化之前用投递模式注册 Session 提交回显（`session.beginSubmission`），并在 `pendingSubmissions` 中保留图片与文件的选择顺序；Session 根据该模式与当前运行状态推导位置，因此空闲发送进入 transcript（文本记录），繁忙时 Queue 进入 QueueDock，繁忙时 Steer 进入 pending-steering 区域。随后让出一帧，图片经浏览器原生 `FileReader` data-URL 路径编码，文件则引用已暂存凭证。命令提交也用同一凭证表示通用文件，因此发送 `/goal` 或 `/plan` 时不会再次读取这些浏览器文件。提示词复用提交 `requestId`；queue 或历史以同一 `rpcId` 被观察后，回显只退休一次。多个并发发送失败时，在用户编辑还原内容之前按提交顺序合并还原；命令提交保持冻结的 `submitting` 阶段。Detached attempt 持有附件 id，直到 admission 完成或 Session scope 销毁。回显以 observed 退休时，durable 图片缓存立即公开每个预览 URL，读取 admitted 附件后用规范化 URL 替换预览，并在各 URL 停止使用后撤销，同时释放文件卡。选中的通用文件进入同一个先进先出的后台上传队列；`maxConcurrentFileUploads` 默认允许两个 Worker transport 同时运行，Conversation 服务在切换 Session 时继续持有排队和运行中的传输操作及字节进度，移除草稿会跳过排队中的传输或中止正在运行的传输。continuable 子代理禁用附件入口，也不创建本地回显，因为其 transport 不保留浏览器 request id。
+ 
+diff --git a/packages/client/ui-conversation/package.json b/packages/client/ui-conversation/package.json
+index 060d2a06114d5fe772ee3444a2daca53794b2a94..98e00dd64076343a82db8c48a356845c3fe5e580 100644
+--- a/packages/client/ui-conversation/package.json
++++ b/packages/client/ui-conversation/package.json
+@@ -58,6 +58,7 @@
+     "@deepseek-ai/dsh-api-workspace-controller": "workspace:^",
+     "@deepseek-ai/dsh-attachment": "workspace:^",
+     "@deepseek-ai/dsh-brand": "workspace:^",
++    "@deepseek-ai/dsh-file-reference": "workspace:^",
+     "@deepseek-ai/dsh-client-locale": "workspace:^",
+     "@deepseek-ai/dsh-client-file-upload": "workspace:^",
+     "@deepseek-ai/dsh-client-store": "workspace:^",
+diff --git a/packages/client/ui-conversation/src/client/contract/input.ts b/packages/client/ui-conversation/src/client/contract/input.ts
+index e70136736e4bb1256991a3f1017e078ee1aef389..a945f3b260bd9013d1dacbb4f5f841033c02e36f 100644
+--- a/packages/client/ui-conversation/src/client/contract/input.ts
++++ b/packages/client/ui-conversation/src/client/contract/input.ts
+@@ -279,6 +279,8 @@ export interface ComposerKeyboard {
+   steerQueue(): void
+   /** Insert pasted plain text over the current editor selection (reference-placeholder-sanitized). */
+   paste(text: string): void
++  /** Insert one structured reference over the current editor selection. */
++  insertReferenceAtCaret(reference: ReferenceInsert): boolean
+   /**
+    * The live selection as a detect-coordinate span (menu-launcher synthetic
+    * hits replace it on pick); an absent selection answers a collapsed span at
+diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
+index 795090f46515b8bc85fe96863746a4b072f69e6b..1e7259020ce656e02f2c0c82ad7eb3ccc6e9f988 100644
+--- a/packages/client/ui-conversation/src/client/contract/slots.ts
++++ b/packages/client/ui-conversation/src/client/contract/slots.ts
+@@ -62,6 +62,8 @@ export interface ComposerAttachmentsOwnerProps {
+   canAcceptDrop: boolean
+   /** Add one dropped batch through the composer's validation path. */
+   onAddFiles: (files: readonly File[]) => void
++  /** Insert one file dragged from the current Session's workspace tree. */
++  onAddWorkspaceFile: (address: string) => void
+   /** Remove one draft attachment through the Conversation service. */
+   onRemoveAttachment: (id: DraftAttachmentId) => void
+   /** Current per-draft upload states for file-kind attachments. */
+diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
+index 80509a6ac713ef42b4ecab4813181d674527ad0c..c5f8ad68a13b0f9400b33b1d0b01f6fdc341e776 100644
+--- a/packages/client/ui-conversation/src/client/input/facade.ts
++++ b/packages/client/ui-conversation/src/client/input/facade.ts
+@@ -451,6 +451,11 @@ export class SessionInputShell implements SessionInput {
+     return { start: at, end: at }
+   }
+ 
++  /** Insert one structured reference over the live selection. */
++  insertReferenceAtCaret(reference: ReferenceInsert): boolean {
++    return this.insertReference(reference, { ...this.caretSpan(), draftRev: this.rev })
++  }
++
+   /**
+    * Hot plain-text reference lexicon source for the decoration scan:
+    * delegates to the controller's aggregated store. Stable
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+index 6b7d83f3f631c9a889c4a07429bfb9c6b1586c77..956f8d51e2d4211fb3c68cd75862965f22f41993 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -28,6 +28,11 @@ import type {} from '@deepseek-ai/dsh-goal/client'
+ // wire types: apiproxy's sessions contract declares it, and client-runtime's
+ // api-remotes import already places it in every client program.
+ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
++import { formatFileMention } from '@deepseek-ai/dsh-file-reference/grammar'
++import {
++  isAbsoluteWorkspacePath, parseFileAddress, pathPartsOf,
++} from '@deepseek-ai/dsh-util-workspace-path'
++import type { ReferenceInsert } from '../contract/input.ts'
+ import type { ComposerBarProps } from '../contract/slots.ts'
+ import { ComposerContentEditable } from '../input/editor/ComposerContentEditable.tsx'
+ import { DecoratorPortals } from '../input/editor/DecoratorPortals.tsx'
+@@ -40,6 +45,25 @@ import css from './InputBar.module.css'
+ 
+ export type InputBarProps = ComposerBarProps
+ 
++/** Resolve a current-Session workspace-file drag into the composer's reference form. */
++export function workspaceFileDropReference(
++  sessionId: string,
++  address: string,
++): ReferenceInsert | undefined {
++  const file = parseFileAddress(address)
++  if (file?.scope !== 'session' || file.sessionId !== sessionId
++    || file.path === '' || isAbsoluteWorkspacePath(file.path)) return undefined
++  const mention = formatFileMention({ kind: 'file', path: file.path }, false)
++  if (mention === undefined) return undefined
++  return {
++    source: 'reference',
++    ref: mention,
++    label: pathPartsOf(file.path).name,
++    appearance: 'file',
++    clipboardText: mention,
++  }
++}
++
+ export const InputBar = memo(function InputBar({
+   useSession, useInput, inputActions, keyboard, addFiles, removeAttachment, resolveDraftAttachments,
+   retryFileUpload,
+@@ -253,6 +277,11 @@ export const InputBar = memo(function InputBar({
+   }, [subagent, addFiles, attachments, imageLimits, showToast, t])
+ 
+   const canAcceptDrop = subagent === null && !locked && !machineBusy && addFiles !== undefined
++  const intakeWorkspaceFile = useCallback((address: string): void => {
++    if (!canAcceptDrop || sessionId === undefined) return
++    const reference = workspaceFileDropReference(sessionId, address)
++    if (reference !== undefined) keyboard.insertReferenceAtCaret(reference)
++  }, [canAcceptDrop, keyboard, sessionId])
+ 
+   const fileInputRef = useRef<HTMLInputElement | null>(null)
+   const onPickFiles = (e: ChangeEvent<HTMLInputElement>): void => {
+@@ -445,6 +474,7 @@ export const InputBar = memo(function InputBar({
+           attachments,
+           canAcceptDrop,
+           onAddFiles: intakeFiles,
++          onAddWorkspaceFile: intakeWorkspaceFile,
+           onRemoveAttachment: (id) => { removeAttachment?.(id) },
+           uploads,
+           onRetryFile: (id) => { retryFileUpload?.(id) },
+diff --git a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
+index 13266b1ca2ba990abdf01914c4cec204159cd6ad..5aecf8fd6322659d32423d1852806b800bee5ceb 100644
+--- a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
++++ b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
+@@ -21,6 +21,7 @@ import type { SessionListState, SessionSnapshot } from '@deepseek-ai/dsh-api-ses
+ import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import { sessionFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
+ import type { SubmitOutcome } from '../src/client/contract/input.ts'
+ import { SessionInputShell } from '../src/client/input/facade.ts'
+ import { $replaceDetectSpanWithText, $selectDetectSpan } from '../src/client/input/editor/span-map.ts'
+@@ -28,7 +29,7 @@ import type {
+   ComposerAttachment, ComposerAttachmentsOwnerProps, DraftFileUploads,
+ } from '../src/client/contract/slots.ts'
+ import type { DraftAttachmentId } from '../src/client/contract/input.ts'
+-import { InputBar } from '../src/client/skeleton/InputBar.tsx'
++import { InputBar, workspaceFileDropReference } from '../src/client/skeleton/InputBar.tsx'
+ import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
+ import { zh } from '../src/client/locales.ts'
+ 
+@@ -313,6 +314,31 @@ describe('composer placeholder visibility', () => {
+   })
+ })
+ 
++describe('workspace file drop', () => {
++  it('turns a file-tree resource into a structured reference at the caret', () => {
++    const address = sessionFileAddress(SID, 'docs/review plan.md')
++    expect(workspaceFileDropReference(SID, address)).toEqual({
++      source: 'reference',
++      ref: '@"docs/review plan.md"',
++      label: 'review plan.md',
++      appearance: 'file',
++      clipboardText: '@"docs/review plan.md"',
++    })
++    expect(workspaceFileDropReference('other', address)).toBeUndefined()
++    expect(workspaceFileDropReference(SID, sessionFileAddress(SID, '/outside.md'))).toBeUndefined()
++    expect(workspaceFileDropReference(SID, 'https://example.com/review.md')).toBeUndefined()
++
++    const result = bench({ draft: '请查看 ' })
++    act(() => { attachmentOwner(result.slotCalls).onAddWorkspaceFile(address) })
++    expect(result.shell.snapshot.draft).toBe('请查看 @"docs/review plan.md" ')
++    expect(result.shell.snapshot.occurrences).toEqual([expect.objectContaining({
++      source: 'reference',
++      label: 'review plan.md',
++      clipboardText: '@"docs/review plan.md"',
++    })])
++  })
++})
++
+ describe('image draft rail', () => {
+   it('collects clipboard files while preserving text from a mixed paste', async () => {
+     const addFiles = vi.fn(() => null)
+diff --git a/packages/client/ui-conversation/tsconfig.json b/packages/client/ui-conversation/tsconfig.json
+index c4d11ddb3d3c8000a29c94baba3d53d6ed0e5937..c9381e5dfd86acbfc0e33c20fceb70a25e888a84 100644
+--- a/packages/client/ui-conversation/tsconfig.json
++++ b/packages/client/ui-conversation/tsconfig.json
+@@ -23,6 +23,9 @@
+     {
+       "path": "../../attachment/attachment"
+     },
++    {
++      "path": "../../context/file-reference"
++    },
+     {
+       "path": "../../util/brand"
+     },
+diff --git a/packages/client/ui-sidebar-files/README.i18n.yaml b/packages/client/ui-sidebar-files/README.i18n.yaml
+index 855bf2710cd5388d7f4f12a0a2a721ce7ef1b732..c9dca54d4b891fb77a153d6c9556219a49b52fa0 100644
+--- a/packages/client/ui-sidebar-files/README.i18n.yaml
++++ b/packages/client/ui-sidebar-files/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-sidebar-files/README.md
+-README.md: 28e052b5a6739118c691431aad88964a8f6d19cd
+-README.zh.md: fe5a10d19b3957f555c08eeaf6f48ceb44daecaf
++README.md: 6b05fad929252259c10baf8cc179c304efbae06c
++README.zh.md: bf0228aabdd0c0a0a1acaf4c26b60b5697a791eb
+diff --git a/packages/client/ui-sidebar-files/README.md b/packages/client/ui-sidebar-files/README.md
+index 28e052b5a6739118c691431aad88964a8f6d19cd..6b05fad929252259c10baf8cc179c304efbae06c 100644
+--- a/packages/client/ui-sidebar-files/README.md
++++ b/packages/client/ui-sidebar-files/README.md
+@@ -38,7 +38,7 @@ The root is the session's working directory, read from `useSessions().byId[sessi
+ | Entry type | Row |
+ |---|---|
+ | `directory` | Toggles; the level is fetched the first time it opens and kept while collapsed. |
+-| `file` | Opens `dsh-resource://file/session/<sessionId>/<encoded path relative to the root>`, built by `fileAddressFor` from `@deepseek-ai/dsh-util-workspace-path` from the entry's absolute path and the tree's root, through `useTabInfo().tab.actions.openResource`, landing in the tab's own pane. |
++| `file` | Click opens `dsh-resource://file/session/<sessionId>/<encoded path relative to the root>`, built by `fileAddressFor` from `@deepseek-ai/dsh-util-workspace-path` from the entry's absolute path and the tree's root, through `useTabInfo().tab.actions.openResource`, landing in the tab's own pane. Drag carries that same Session-scoped resource address; the conversation composer accepts it as a structured file reference at the current selection. |
+ | `other` | Shown greyed and not clickable, so the directory is reported whole. |
+ 
+ A level cut by the endpoint's entry cap ends with a marker; an empty level says so; a level that failed shows one line per code — `workspace-file/not-found`, `outside-workspace`, `not-directory` — and the transport's own message otherwise. Reload drops every listed level and asks again for the expanded ones; collapsed levels are fetched again when they next open. A session without a working directory shows a single line instead of a tree.
+@@ -57,7 +57,7 @@ None; directory listings travel over the Remote and assemble no model request.
+ ## Known Limitations and Deferred Work
+ 
+ <a id="known-limitations-and-deferred-work"></a>
+-- **Listing only.** No search, artifact filter, drag-and-drop, rename, context menu, current-file highlight, or filesystem watching; a level changes only through reload.
++- **Navigation and composer references only.** No search, artifact filter, directory drag, rename, context menu, current-file highlight, or filesystem watching; a level changes only through reload.
+ - **One root.** The tree is rooted at the session's working directory; there is no way to browse above it, and the Host refuses paths outside the workspace root anyway.
+ 
+ <a id="dev-note"></a>
+diff --git a/packages/client/ui-sidebar-files/README.zh.md b/packages/client/ui-sidebar-files/README.zh.md
+index fe5a10d19b3957f555c08eeaf6f48ceb44daecaf..bf0228aabdd0c0a0a1acaf4c26b60b5697a791eb 100644
+--- a/packages/client/ui-sidebar-files/README.zh.md
++++ b/packages/client/ui-sidebar-files/README.zh.md
+@@ -38,7 +38,7 @@ kind: "package-reference"
+ | 条目类型 | 行 |
+ |---|---|
+ | `directory` | 切换展开与折叠；该层在首次打开时拉取，折叠期间保留。 |
+-| `file` | 经 `useTabInfo().tab.actions.openResource` 打开 `dsh-resource://file/session/<sessionId>/<encoded path relative to the root>`，地址由 `@deepseek-ai/dsh-util-workspace-path` 的 `fileAddressFor` 从条目的绝对路径与树的根生成，落在该 tab 自己的 pane 里。 |
++| `file` | 单击时经 `useTabInfo().tab.actions.openResource` 打开 `dsh-resource://file/session/<sessionId>/<encoded path relative to the root>`，地址由 `@deepseek-ai/dsh-util-workspace-path` 的 `fileAddressFor` 从条目的绝对路径与树的根生成，落在该 tab 自己的 pane 里。拖动时携带同一会话范围的资源地址；对话 composer 会在当前选区把它接收为结构化文件引用。 |
+ | `other` | 灰显且不可点击，从而完整呈现目录内容。 |
+ 
+ 被端点条目上限截断的层以一条标记收尾；空层如实说明；失败的层按错误码各显示一行（`workspace-file/not-found`、`outside-workspace`、`not-directory`），其他情况显示传输层自己的消息。重新读取丢弃所有已列出的层并只对展开中的层重新请求；折叠的层在下次打开时重新拉取。没有工作目录的会话只显示一行说明，而不是树。
+@@ -57,7 +57,7 @@ kind: "package-reference"
+ ## 已知限制与暂缓事项
+ 
+ <a id="known-limitations-and-deferred-work"></a>
+-- **只有列目录。**没有搜索、产物过滤、拖拽、重命名、右键菜单、当前文件高亮或文件系统监听；一层只会因重新读取而变化。
++- **仅导航与 composer 引用。**不支持搜索、产物筛选、目录拖动、重命名、上下文菜单、当前文件高亮或文件系统监听；一层仅在重新读取时变化。
+ - **只有一个根。**树以会话工作目录为根；没有办法浏览到它之上，而 Host 本来也拒绝工作区根之外的路径。
+ 
+ <a id="dev-note"></a>
+diff --git a/packages/client/ui-sidebar-files/src/client/FilesBody.tsx b/packages/client/ui-sidebar-files/src/client/FilesBody.tsx
+index 07c4b8be65cc72aaef5f282b584a2aa40e868e02..9ca1f11a651c3a0d0756dc292b7e87e8209e8343 100644
+--- a/packages/client/ui-sidebar-files/src/client/FilesBody.tsx
++++ b/packages/client/ui-sidebar-files/src/client/FilesBody.tsx
+@@ -11,14 +11,16 @@
+  * and asks again for the expanded ones.
+  */
+ import { useEffect, useLayoutEffect, useRef } from 'react'
+-import type { ReactNode, RefObject } from 'react'
++import type { DragEvent, ReactNode, RefObject } from 'react'
+ import clsx from 'clsx'
+ import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
+ import type { PropsLocale, PropsRuntime, PropsStore, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+ import {
+   FileTypeIcon, IconFolderClose16, IconFolderOpen16, IconRefreshOutline16, classifyFileType,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+-import { fileAddressFor, pathPartsOf } from '@deepseek-ai/dsh-util-workspace-path'
++import {
++  fileAddressFor, pathPartsOf, WORKSPACE_FILE_DRAG_TYPE,
++} from '@deepseek-ai/dsh-util-workspace-path'
+ import type { WorkspaceDirectoryEntry } from '@deepseek-ai/dsh-api-workspace-files/types'
+ import { childPath } from './face.ts'
+ import type { FilesInjected } from './face.ts'
+@@ -105,6 +107,7 @@ interface TreeContext {
+   readonly state: FilesTabState
+   readonly onToggle: (path: string) => void
+   readonly onOpen: (path: string) => void
++  readonly onDragStart: (path: string, event: DragEvent<HTMLButtonElement>) => void
+   readonly t: TranslateNS<'sidebarFiles'>
+ }
+ 
+@@ -126,7 +129,13 @@ function Entry({ parent, entry, tree }: { parent: string; entry: WorkspaceDirect
+   if (entry.type === 'file') {
+     return (
+       <li className={css.item} data-files-entry="file" data-files-path={path}>
+-        <button type="button" className={css.row} onClick={() => { tree.onOpen(path) }}>
++        <button
++          type="button"
++          className={css.row}
++          draggable
++          onClick={() => { tree.onOpen(path) }}
++          onDragStart={(event) => { tree.onDragStart(path, event) }}
++        >
+           <FileTypeIcon kind={classifyFileType(entry.name)} size={16} className={css.fileIcon} />
+           <span className={css.name}>{entry.name}</span>
+         </button>
+@@ -197,6 +206,13 @@ export function FilesBody({
+     onToggle: (path) => { toggle(tab.id, path, state.levels[path] !== undefined, signal) },
+     // Every row is under the tree's root, so its address is session-relative.
+     onOpen: (path) => { tabActions.openResource(fileAddressFor(sessionId, state.root, path)) },
++    onDragStart: (path, event) => {
++      event.dataTransfer.effectAllowed = 'copy'
++      event.dataTransfer.setData(
++        WORKSPACE_FILE_DRAG_TYPE,
++        fileAddressFor(sessionId, state.root, path),
++      )
++    },
+     t,
+   }
+   // Reload drops every level and asks again for the expanded ones; a collapsed
+diff --git a/packages/client/ui-sidebar-files/tests/files-body.client.spec.tsx b/packages/client/ui-sidebar-files/tests/files-body.client.spec.tsx
+index 51bf217312fa57f922a4caf83a94b0423e691bcd..18882b3877351e8ba0629030a60cc1a61c64d831 100644
+--- a/packages/client/ui-sidebar-files/tests/files-body.client.spec.tsx
++++ b/packages/client/ui-sidebar-files/tests/files-body.client.spec.tsx
+@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
+ import { act, cleanup, fireEvent } from '@testing-library/react'
+ import { makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
+ import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
+-import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
++import { fileAddressFor, WORKSPACE_FILE_DRAG_TYPE } from '@deepseek-ai/dsh-util-workspace-path'
+ import { failureLine, orderEntries } from '../src/client/FilesBody.tsx'
+ import type { DirLevel } from '../src/client/store.ts'
+ import { zh } from '../src/client/locales.ts'
+@@ -144,6 +144,21 @@ describe('FilesBody', () => {
+     expect(other.querySelector('[aria-disabled="true"]')?.getAttribute('title')).toBe(zh['entry.other'])
+   })
+ 
++  it('makes a file row a copy drag carrying its session-scoped resource address', async () => {
++    const { view, script } = mountBody()
++    await act(() => script.settle({ ok: true, value: ROOT_LEVEL }))
++    const row = view.container.querySelector<HTMLButtonElement>(`[data-files-path="${ROOT}/README.md"] > button`)!
++    const dataTransfer = { effectAllowed: 'none', setData: vi.fn() }
++
++    expect(row.draggable).toBe(true)
++    fireEvent.dragStart(row, { dataTransfer })
++    expect(dataTransfer.effectAllowed).toBe('copy')
++    expect(dataTransfer.setData).toHaveBeenCalledWith(
++      WORKSPACE_FILE_DRAG_TYPE,
++      'dsh-resource://file/session/s-test/README.md',
++    )
++  })
++
+   it('marks a cut listing and an empty one', async () => {
+     const { view, script } = mountBody()
+     await act(() => script.settle({ ok: true, value: { entries: [{ name: 'd', type: 'directory' }], truncated: true } }))
+diff --git a/packages/util/workspace-path/src/file-address.ts b/packages/util/workspace-path/src/file-address.ts
+index a5ddad2cfc1057339be2fb4dfbb16bb17735f53c..d3a9091178a73e9f05c4f91588864e920c69964c 100644
+--- a/packages/util/workspace-path/src/file-address.ts
++++ b/packages/util/workspace-path/src/file-address.ts
+@@ -41,6 +41,9 @@ export type FileAddress =
+ /** The scheme and type every file address opens with. */
+ const FILE_ADDRESS_PREFIX = 'dsh-resource://file/'
+ 
++/** DataTransfer type for one workspace-tree file resource address. */
++export const WORKSPACE_FILE_DRAG_TYPE = 'application/vnd.deepseek-harness.workspace-file'
++
+ /** Component-encode one id or path segment, keeping `:` literal for drive letters. */
+ function encodeSegment(segment: string): string {
+   return encodeURIComponent(segment).replace(/%3A/gi, ':')
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index a2773904c82e01371987b023034fbbc3b9cc40b2..6955bbc48bbecfda6a8da9d16c5309431beab293 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -2344,6 +2344,9 @@ importers:
+       '@deepseek-ai/dsh-client-ui-trajectory':
+         specifier: workspace:^
+         version: link:../ui-trajectory
++      '@deepseek-ai/dsh-util-workspace-path':
++        specifier: workspace:^
++        version: link:../../util/workspace-path
+       '@types/react':
+         specifier: ~18.3.1
+         version: 18.3.31
+@@ -2619,6 +2622,9 @@ importers:
+       '@deepseek-ai/dsh-commands':
+         specifier: workspace:^
+         version: link:../../interaction/commands
++      '@deepseek-ai/dsh-file-reference':
++        specifier: workspace:^
++        version: link:../../context/file-reference
+       '@deepseek-ai/dsh-goal':
+         specifier: workspace:^
+         version: link:../../goal/goal
+

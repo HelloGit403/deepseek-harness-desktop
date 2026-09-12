@@ -55,6 +55,11 @@ jobs:
       - name: Apply desktop adaptation
         shell: pwsh
         run: |
+          $featurePatch = (Resolve-Path desktop-source/apps/desktop/patches/workspace-file-tree-drag-references.patch).Path
+          git -C official apply --check --whitespace=error-all $featurePatch
+          if ($LASTEXITCODE -ne 0) { throw 'The workspace-file drag patch does not apply to the pinned official revision.' }
+          git -C official apply --whitespace=error-all $featurePatch
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to apply the workspace-file drag patch.' }
           Remove-Item official/apps/desktop -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force
           node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml official/tsconfig.host.json official/tsdown.config.ts

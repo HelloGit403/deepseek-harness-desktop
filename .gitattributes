@@ -8,6 +8,9 @@
 
 *.pdf binary
 
+# Unified-diff context represents an empty source line as one leading space.
+apps/desktop/patches/*.patch whitespace=-blank-at-eol,-blank-at-eof
+
 # Pairing records are generated from the three confirmed owner-blob pairs.
 # The worktree-local installer registers the fail-closed driver command.
 *.i18n.yaml merge=dsh-translation-pairing
