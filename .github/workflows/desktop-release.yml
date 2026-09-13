@@ -55,15 +55,15 @@ jobs:
       - name: Apply desktop adaptation
         shell: pwsh
         run: |
-          $featurePatch = (Resolve-Path desktop-source/apps/desktop/patches/workspace-file-tree-drag-references.patch).Path
-          git -C official apply --check --whitespace=error-all $featurePatch
-          if ($LASTEXITCODE -ne 0) { throw 'The workspace-file drag patch does not apply to the pinned official revision.' }
-          git -C official apply --whitespace=error-all $featurePatch
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to apply the workspace-file drag patch.' }
           Remove-Item official/apps/desktop -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force
-          node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml official/tsconfig.host.json official/tsdown.config.ts
+          $plugin = 'packages/client/ui-workspace-file-drag'
+          if (Test-Path "official/$plugin") { throw 'The official source already owns the workspace-file drag package name.' }
+          Copy-Item "desktop-source/$plugin" "official/$plugin" -Recurse
+          node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml official/tsconfig.host.json official/tsdown.config.ts official/packages/bundle/web-app/package.json official/packages/bundle/web-app/cordis.patch.yml official/tsconfig.client.json
           if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare the official workspace for the desktop adaptation.' }
+          node desktop-source/apps/desktop/scripts/verify-workspace-file-drag-host.mjs official
+          if ($LASTEXITCODE -ne 0) { throw 'The official Web DOM no longer satisfies the workspace-file drag plugin.' }
           $client = 'packages/client/ui-settings-general/src/client'
           $files = @(
             'DesktopUpdateSection.module.css',
@@ -101,6 +101,10 @@ jobs:
         env:
           DSH_DESKTOP_SOURCE_ROOT: ${{ github.workspace }}/desktop-source
         run: pnpm --filter @deepseek-ai/dsh-desktop test
+
+      - name: Test workspace-file drag plugin
+        working-directory: official
+        run: pnpm exec vitest run packages/client/ui-workspace-file-drag/tests
 
       - name: Build Harness
         working-directory: official

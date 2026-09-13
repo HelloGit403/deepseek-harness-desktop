@@ -4,7 +4,10 @@ import { resolve } from 'node:path'
 import { test } from 'node:test'
 import {
   prepareReleaseBundlerConfig,
+  prepareReleaseClientConfig,
   prepareReleaseHostConfig,
+  prepareReleaseWebAppManifest,
+  prepareReleaseWebAppPatch,
   prepareReleaseWorkspace,
 } from '../scripts/prepare-release-workspace.mjs'
 
@@ -16,17 +19,54 @@ test('desktop release preserves upstream workspace configuration', () => {
 
   assert.match(
     workflow,
-    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts/u,
+    /Copy-Item "desktop-source\/\$plugin" "official\/\$plugin" -Recurse/u,
   )
   assert.match(
     workflow,
-    /git -C official apply --check --whitespace=error-all \$featurePatch/u,
+    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts official\/packages\/bundle\/web-app\/package\.json official\/packages\/bundle\/web-app\/cordis\.patch\.yml official\/tsconfig\.client\.json/u,
   )
-  assert.match(
-    workflow,
-    /git -C official apply --whitespace=error-all \$featurePatch/u,
-  )
+  assert.doesNotMatch(workflow, /git -C official apply/u)
+  assert.match(workflow, /verify-workspace-file-drag-host\.mjs official/u)
+  assert.match(workflow, /vitest run packages\/client\/ui-workspace-file-drag\/tests/u)
   assert.doesNotMatch(workflow, /Copy-Item desktop-source\/pnpm-workspace\.yaml/u)
+})
+
+test('registers the workspace-file drag package through official Web plugin surfaces', () => {
+  const manifest = prepareReleaseWebAppManifest('{"dependencies":{"z":"1","a":"2"}}\n')
+  assert.deepEqual(Object.keys(JSON.parse(manifest).dependencies), [
+    '@deepseek-ai/dsh-client-ui-workspace-file-drag', 'a', 'z',
+  ])
+  assert.equal(
+    JSON.parse(manifest).dependencies['@deepseek-ai/dsh-client-ui-workspace-file-drag'],
+    'workspace:^',
+  )
+  assert.throws(
+    () => prepareReleaseWebAppManifest('{"dependencies":{"@deepseek-ai/dsh-client-ui-workspace-file-drag":"1.0.0"}}'),
+    /configures @deepseek-ai\/dsh-client-ui-workspace-file-drag/u,
+  )
+  assert.throws(() => prepareReleaseWebAppManifest('{"name":"web"}'), /does not define dependencies/u)
+
+  const client = prepareReleaseClientConfig([
+    '{',
+    '  "references": [',
+    '    { "path": "./packages/client/ui-reference" },',
+    '    { "path": "./apps/web" }',
+    '  ]',
+    '}',
+    '',
+  ].join('\n'))
+  assert.match(client, /packages\/client\/ui-workspace-file-drag/u)
+  assert.equal(prepareReleaseClientConfig(client), client)
+  assert.throws(() => prepareReleaseClientConfig('{}\n'), /does not define project references/u)
+  assert.throws(
+    () => prepareReleaseClientConfig('{"references":[]}\n'),
+    /does not reference ui-reference/u,
+  )
+
+  const webPatch = prepareReleaseWebAppPatch('- insert:\n    - id: ui-reference\n      name: reference\n')
+  assert.match(webPatch, /- id: ui-workspace-file-drag/u)
+  assert.match(webPatch, /@deepseek-ai\/dsh-client-ui-workspace-file-drag/u)
+  assert.equal(prepareReleaseWebAppPatch(webPatch), webPatch)
 })
 
 test('removes the replaced upstream desktop project from the bundler workspace', () => {
