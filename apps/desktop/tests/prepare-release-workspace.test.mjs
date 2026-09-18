@@ -11,6 +11,14 @@ import {
   prepareReleaseWorkspace,
 } from '../scripts/prepare-release-workspace.mjs'
 
+test('desktop shell tests exclude preserved upstream release utilities', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  )
+
+  assert.equal(manifest.scripts.test, 'node --test "tests/**/*.test.mjs"')
+})
+
 test('desktop release preserves upstream workspace configuration', () => {
   const workflowPath = process.env.DSH_DESKTOP_SOURCE_ROOT
     ? resolve(process.env.DSH_DESKTOP_SOURCE_ROOT, '.github/workflows/desktop-release.yml')
