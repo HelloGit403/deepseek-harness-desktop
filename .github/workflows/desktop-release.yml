@@ -55,12 +55,11 @@ jobs:
       - name: Apply desktop adaptation
         shell: pwsh
         run: |
-          $upstreamDesktopScripts = Join-Path $env:RUNNER_TEMP 'upstream-desktop-scripts'
-          Copy-Item official/apps/desktop/scripts $upstreamDesktopScripts -Recurse -Force
+          $upstreamDesktopRuntimeLock = Join-Path $env:RUNNER_TEMP 'primary-runtime-lock.json'
+          Copy-Item official/apps/desktop/scripts/primary-runtime-lock.json $upstreamDesktopRuntimeLock -Force
           Remove-Item official/apps/desktop -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item official/apps/desktop/scripts -ItemType Directory -Force | Out-Null
-          Copy-Item "$upstreamDesktopScripts/*" official/apps/desktop/scripts -Recurse -Force
-          Copy-Item desktop-source/apps/desktop/* official/apps/desktop -Recurse -Force
+          Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force
+          Copy-Item $upstreamDesktopRuntimeLock official/apps/desktop/scripts/primary-runtime-lock.json -Force
           $plugin = 'packages/client/ui-workspace-file-drag'
           if (Test-Path "official/$plugin") { throw 'The official source already owns the workspace-file drag package name.' }
           Copy-Item "desktop-source/$plugin" "official/$plugin" -Recurse

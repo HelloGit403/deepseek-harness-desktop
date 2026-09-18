@@ -14,7 +14,7 @@ A scheduled GitHub workflow checks the configured official branch head and deskt
 
 The sync also queries the release matching the current desktop version. If that release is missing after a build failure, interruption, or dispatch failure, a later run dispatches the same version again instead of incrementing it. This makes the repository record the desired official revision while GitHub Releases records whether a tested desktop artifact actually exists.
 
-Desktop Release remains the publication authority. It checks out the recorded official commit, applies only the desktop adaptation, runs desktop tests and the official build, packages the installer, starts the packaged Harness Web runtime, and publishes the installer, blockmap, and `latest.yml` only after all checks pass. A breaking upstream change therefore stops the channel at the last working release rather than delivering a broken update.
+Desktop Release remains the publication authority. It checks out the recorded official commit, replaces the official desktop package with the desktop adaptation, and carries forward only the official `primary-runtime-lock.json` input needed to pin the embedded Node runtime. The adaptation's scripts stay paired with its source instead of being combined with build scripts that target the official desktop implementation. The workflow then runs desktop tests and the official build, packages the installer, starts the packaged Harness Web runtime, and publishes the installer, blockmap, and `latest.yml` only after all checks pass. A breaking upstream change therefore stops the channel at the last working release rather than delivering a broken update.
 
 ## Alternatives considered
 
@@ -24,6 +24,8 @@ Desktop Release remains the publication authority. It checks out the recorded of
 
 **Require a maintainer to push a release tag after each official change.** This preserves the existing manual gap and does not satisfy unattended updates.
 
+**Combine every official desktop script with the adapted desktop source.** Official scripts may import files or dependencies owned by the official desktop implementation and fail against the replacement package. Preserving only the runtime lock keeps the official runtime selection without mixing two desktop implementations.
+
 ## Consequences
 
-When the official branch remains compatible with the desktop adaptation, a new tested desktop release appears without user or maintainer action, and the application discovers it through its existing startup or manual check. Breaking official changes remain visible as failed GitHub workflow runs and are retried at the same desktop version until the adaptation is fixed; the installed application continues offering the last successful release.
+When the official branch remains compatible with the desktop adaptation, a new tested desktop release appears without user or maintainer action, and the application discovers it through its existing startup or manual check. An official runtime-lock change enters the adapted package automatically, while other official desktop-script changes require an explicit adaptation change when they are relevant. Breaking official changes remain visible as failed GitHub workflow runs and are retried at the same desktop version until the adaptation is fixed; the installed application continues offering the last successful release.

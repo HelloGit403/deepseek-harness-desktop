@@ -25,23 +25,23 @@ test('desktop release preserves upstream workspace configuration', () => {
     : new URL('../../../.github/workflows/desktop-release.yml', import.meta.url)
   const workflow = readFileSync(workflowPath, 'utf8')
 
-  const preserveUpstreamScripts = workflow.indexOf(
-    "Copy-Item official/apps/desktop/scripts $upstreamDesktopScripts -Recurse -Force",
+  const preserveUpstreamRuntimeLock = workflow.indexOf(
+    'Copy-Item official/apps/desktop/scripts/primary-runtime-lock.json $upstreamDesktopRuntimeLock -Force',
   )
   const removeUpstreamDesktop = workflow.indexOf(
     'Remove-Item official/apps/desktop -Recurse -Force',
   )
-  const restoreUpstreamScripts = workflow.indexOf(
-    'Copy-Item "$upstreamDesktopScripts/*" official/apps/desktop/scripts -Recurse -Force',
-  )
   const overlayDesktopAdaptation = workflow.indexOf(
-    'Copy-Item desktop-source/apps/desktop/* official/apps/desktop -Recurse -Force',
+    'Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force',
+  )
+  const restoreUpstreamRuntimeLock = workflow.indexOf(
+    'Copy-Item $upstreamDesktopRuntimeLock official/apps/desktop/scripts/primary-runtime-lock.json -Force',
   )
 
-  assert.ok(preserveUpstreamScripts >= 0)
-  assert.ok(preserveUpstreamScripts < removeUpstreamDesktop)
-  assert.ok(removeUpstreamDesktop < restoreUpstreamScripts)
-  assert.ok(restoreUpstreamScripts < overlayDesktopAdaptation)
+  assert.ok(preserveUpstreamRuntimeLock >= 0)
+  assert.ok(preserveUpstreamRuntimeLock < removeUpstreamDesktop)
+  assert.ok(removeUpstreamDesktop < overlayDesktopAdaptation)
+  assert.ok(overlayDesktopAdaptation < restoreUpstreamRuntimeLock)
 
   assert.match(
     workflow,
