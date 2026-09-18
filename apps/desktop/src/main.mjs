@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
-import { desktopServerArgs, harnessReadyUrlFromOutput, probeHarness } from './harness-server.mjs'
+import { desktopServerArgs, desktopServerEnv, harnessReadyUrlFromOutput, probeHarness } from './harness-server.mjs'
 import { resolveNodeRuntime } from './node-runtime.mjs'
 import { DesktopUpdaterController, normalizeDesktopUpdateUrl } from './updater-controller.mjs'
 import { createWindowAppearanceController } from './window-appearance.mjs'
@@ -143,10 +143,7 @@ function startHarnessServer() {
     resourcesPath: process.resourcesPath,
   }), desktopServerArgs(resolveDshEntry(), APP_PORT), {
     cwd: app.getPath('documents'),
-    env: {
-      ...process.env,
-      DSH_HOME: dshHome,
-    },
+    env: desktopServerEnv(process.env, dshHome),
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   })

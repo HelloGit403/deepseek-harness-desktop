@@ -2,10 +2,37 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   desktopServerArgs,
+  desktopServerEnv,
   harnessReadyUrlFromOutput,
   probeHarness,
   waitForHarness,
 } from '../src/harness-server.mjs'
+
+test('desktop server uses bundled CAs without disabling certificate verification', () => {
+  const parent = {
+    Path: 'C:\\Windows\\System32',
+    node_options: '--trace-warnings --use-openssl-ca --use-system-ca',
+    node_extra_ca_certs: 'C:\\company\\root.pem',
+    node_tls_reject_unauthorized: '0',
+    node_use_system_ca: '1',
+    dsh_home: 'C:\\old-home',
+  }
+
+  assert.deepEqual(desktopServerEnv(parent, 'C:\\desktop-home'), {
+    Path: 'C:\\Windows\\System32',
+    NODE_OPTIONS: '--trace-warnings --use-bundled-ca',
+    NODE_EXTRA_CA_CERTS: 'C:\\company\\root.pem',
+    DSH_HOME: 'C:\\desktop-home',
+  })
+  assert.equal(parent.node_options, '--trace-warnings --use-openssl-ca --use-system-ca')
+})
+
+test('desktop server emits one canonical bundled CA option', () => {
+  assert.deepEqual(desktopServerEnv({ NODE_OPTIONS: '--use-bundled-ca' }, 'C:\\desktop-home'), {
+    NODE_OPTIONS: '--use-bundled-ca',
+    DSH_HOME: 'C:\\desktop-home',
+  })
+})
 
 test('desktop server stays inside the Electron window', () => {
   assert.deepEqual(

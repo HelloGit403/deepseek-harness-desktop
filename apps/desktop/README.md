@@ -8,6 +8,8 @@ Set `DSH_DESKTOP_PORT` to use a different loopback port during development or au
 
 The desktop app keeps its profiles, sessions, and settings in an app-owned `harness-home` directory. Set `DSH_HOME` before launching the app when it should share an existing CLI home instead.
 
+The packaged Harness backend verifies outbound HTTPS with Node.js's bundled CA store. The desktop launcher does not inherit `NODE_TLS_REJECT_UNAUTHORIZED` or host CA-selection flags, while `NODE_EXTRA_CA_CERTS` remains available for an organization-managed CA bundle. This keeps certificate verification enabled and prevents host Node.js or OpenSSL settings from changing the desktop backend's default trust store.
+
 ## Window appearance
 
 The Windows desktop shell uses a dark native title bar to match the Harness client. General settings exposes a 60%–100% whole-window opacity control when the Electron preload is present. The selected opacity is stored in Electron's user-data directory as `window-appearance.json`, applies to native window chrome and Web Client content, and survives in-place application updates. Ordinary browser sessions do not receive this desktop-only control.

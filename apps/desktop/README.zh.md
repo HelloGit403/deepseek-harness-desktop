@@ -8,6 +8,8 @@
 
 桌面应用把 profile、会话和设置保存在应用持有的 `harness-home` 目录中。当桌面应用需要与现有 CLI home 共用数据时，请在启动前设置 `DSH_HOME`。
 
+安装包内的 Harness 后端使用 Node.js 内置 CA 存储验证出站 HTTPS。桌面启动器不会继承 `NODE_TLS_REJECT_UNAUTHORIZED` 或宿主 CA 选择参数，同时仍允许通过 `NODE_EXTRA_CA_CERTS` 提供组织管理的 CA 包。这样既保持证书校验启用，也避免宿主 Node.js 或 OpenSSL 设置改变桌面后端的默认信任存储。
+
 ## 窗口外观
 
 Windows 桌面壳使用与 Harness 客户端匹配的深色原生标题栏。当 Electron preload 存在时，「通用设置」会提供 60%–100% 的整窗透明度控制。所选透明度以 `window-appearance.json` 保存在 Electron 用户数据目录中，对原生窗口栏与 Web Client 内容同时生效，并会在原地更新应用后继续保留。普通浏览器会话不会获得这项仅供桌面端使用的控制。

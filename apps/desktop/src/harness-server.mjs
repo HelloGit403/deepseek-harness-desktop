@@ -1,5 +1,44 @@
 /** Marker injected only by the assembled DeepSeek Harness Web UI. */
 const HARNESS_MARKER = 'globalThis["__DSH_BOOT__"]'
+const NODE_CA_OPTION = /(^|\s)--use-(?:bundled|openssl|system)-ca(?=\s|$)/gu
+
+/**
+ * Build the embedded server environment with certificate verification enabled.
+ *
+ * @param {NodeJS.ProcessEnv} env Parent process environment.
+ * @param {string} dshHome Harness data directory.
+ * @returns {NodeJS.ProcessEnv} Environment owned by the desktop server process.
+ */
+export function desktopServerEnv(env, dshHome) {
+  /** @type {NodeJS.ProcessEnv} */
+  const childEnv = {}
+  let nodeOptions
+  let extraCaCertificates
+
+  for (const [key, value] of Object.entries(env)) {
+    switch (key.toUpperCase()) {
+      case 'DSH_HOME':
+        break
+      case 'NODE_EXTRA_CA_CERTS':
+        extraCaCertificates ??= value
+        break
+      case 'NODE_OPTIONS':
+        nodeOptions ??= value
+        break
+      case 'NODE_TLS_REJECT_UNAUTHORIZED':
+      case 'NODE_USE_SYSTEM_CA':
+        break
+      default:
+        childEnv[key] = value
+    }
+  }
+
+  const inheritedOptions = nodeOptions?.replace(NODE_CA_OPTION, '$1').trim()
+  childEnv.NODE_OPTIONS = [inheritedOptions, '--use-bundled-ca'].filter(Boolean).join(' ')
+  if (extraCaCertificates !== undefined) childEnv.NODE_EXTRA_CA_CERTS = extraCaCertificates
+  childEnv.DSH_HOME = dshHome
+  return childEnv
+}
 
 /**
  * Extract the authenticated Web UI URL announced by the local Harness server.
