@@ -17,6 +17,24 @@ test('desktop release preserves upstream workspace configuration', () => {
     : new URL('../../../.github/workflows/desktop-release.yml', import.meta.url)
   const workflow = readFileSync(workflowPath, 'utf8')
 
+  const preserveUpstreamScripts = workflow.indexOf(
+    "Copy-Item official/apps/desktop/scripts $upstreamDesktopScripts -Recurse -Force",
+  )
+  const removeUpstreamDesktop = workflow.indexOf(
+    'Remove-Item official/apps/desktop -Recurse -Force',
+  )
+  const restoreUpstreamScripts = workflow.indexOf(
+    'Copy-Item "$upstreamDesktopScripts/*" official/apps/desktop/scripts -Recurse -Force',
+  )
+  const overlayDesktopAdaptation = workflow.indexOf(
+    'Copy-Item desktop-source/apps/desktop/* official/apps/desktop -Recurse -Force',
+  )
+
+  assert.ok(preserveUpstreamScripts >= 0)
+  assert.ok(preserveUpstreamScripts < removeUpstreamDesktop)
+  assert.ok(removeUpstreamDesktop < restoreUpstreamScripts)
+  assert.ok(restoreUpstreamScripts < overlayDesktopAdaptation)
+
   assert.match(
     workflow,
     /Copy-Item "desktop-source\/\$plugin" "official\/\$plugin" -Recurse/u,
