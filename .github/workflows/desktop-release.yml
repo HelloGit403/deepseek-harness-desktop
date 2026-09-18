@@ -74,13 +74,13 @@ jobs:
             'DesktopWindowOpacityRow.module.css',
             'DesktopWindowOpacityRow.tsx',
             'desktop-update-store.ts',
-            'desktop-window-bridge.ts',
-            'index.ts',
-            'locales.ts'
+            'desktop-window-bridge.ts'
           )
           foreach ($file in $files) {
             Copy-Item "desktop-source/$client/$file" "official/$client/$file" -Force
           }
+          node desktop-source/apps/desktop/scripts/prepare-settings-desktop-adaptation.mjs "official/$client/index.ts" "official/$client/locales.ts" "desktop-source/$client/locales.ts"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare the official desktop settings adaptation.' }
 
       - name: Resolve desktop release identity
         id: release

@@ -54,6 +54,9 @@ test('desktop release preserves upstream workspace configuration', () => {
   assert.doesNotMatch(workflow, /git -C official apply/u)
   assert.match(workflow, /verify-workspace-file-drag-host\.mjs official/u)
   assert.match(workflow, /vitest run packages\/client\/ui-workspace-file-drag\/tests/u)
+  assert.match(workflow, /prepare-settings-desktop-adaptation\.mjs/u)
+  assert.doesNotMatch(workflow, /'SettingsRoot\.tsx'/u)
+  assert.doesNotMatch(workflow, /'shell-contract\.ts'/u)
   assert.doesNotMatch(workflow, /Copy-Item desktop-source\/pnpm-workspace\.yaml/u)
 })
 
