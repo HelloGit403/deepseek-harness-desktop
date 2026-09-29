@@ -86,6 +86,11 @@ test('registers the workspace-file drag package through official Web plugin surf
   ].join('\n'))
   assert.match(client, /packages\/client\/ui-workspace-file-drag/u)
   assert.equal(prepareReleaseClientConfig(client), client)
+  const currentClient = prepareReleaseClientConfig(client.replace(
+    '    { "path": "./apps/web" }',
+    '    { "path": "./apps/desktop/tsconfig.client.json" },\n    { "path": "./apps/web" }',
+  ))
+  assert.doesNotMatch(currentClient, /apps\/desktop\/tsconfig\.client\.json/u)
   assert.throws(() => prepareReleaseClientConfig('{}\n'), /does not define project references/u)
   assert.throws(
     () => prepareReleaseClientConfig('{"references":[]}\n'),
@@ -103,10 +108,7 @@ test('removes the replaced upstream desktop project from the bundler workspace',
   const updated = prepareReleaseBundlerConfig(source)
 
   assert.equal(updated, "workspace: ['vendor/*', 'apps/cli', 'apps/desktop-host'],\n")
-  assert.throws(
-    () => prepareReleaseBundlerConfig("workspace: ['apps/cli'],\n"),
-    /does not include apps\/desktop/u,
-  )
+  assert.equal(prepareReleaseBundlerConfig("workspace: ['apps/cli'],\n"), "workspace: ['apps/cli'],\n")
 })
 
 test('removes the replaced upstream desktop project from the host build', () => {
@@ -127,10 +129,12 @@ test('removes the replaced upstream desktop project from the host build', () => 
   assert.match(updated, /preserves upstream JSONC comments/u)
   assert.match(updated, /\.\/apps\/desktop-host/u)
   assert.doesNotMatch(updated, /"\.\/apps\/desktop"/u)
-  assert.throws(
-    () => prepareReleaseHostConfig('{"references":[]}\n'),
-    /does not reference \.\/apps\/desktop/u,
-  )
+  assert.equal(prepareReleaseHostConfig('{"references":[]}\n'), '{"references":[]}\n')
+  const currentHost = prepareReleaseHostConfig(source.replace(
+    '"./apps/desktop"',
+    '"./apps/desktop/tsconfig.host.json"',
+  ))
+  assert.doesNotMatch(currentHost, /apps\/desktop\/tsconfig\.host\.json/u)
   assert.throws(
     () => prepareReleaseHostConfig('{}\n'),
     /does not define project references/u,

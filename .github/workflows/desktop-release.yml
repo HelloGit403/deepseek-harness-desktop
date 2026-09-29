@@ -56,10 +56,14 @@ jobs:
         shell: pwsh
         run: |
           $upstreamDesktopRuntimeLock = Join-Path $env:RUNNER_TEMP 'primary-runtime-lock.json'
-          Copy-Item official/apps/desktop/scripts/primary-runtime-lock.json $upstreamDesktopRuntimeLock -Force
+          if (Test-Path official/apps/desktop/scripts/primary-runtime-lock.json) {
+            Copy-Item official/apps/desktop/scripts/primary-runtime-lock.json $upstreamDesktopRuntimeLock -Force
+          }
           Remove-Item official/apps/desktop -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item desktop-source/apps/desktop official/apps/desktop -Recurse -Force
-          Copy-Item $upstreamDesktopRuntimeLock official/apps/desktop/scripts/primary-runtime-lock.json -Force
+          if (Test-Path $upstreamDesktopRuntimeLock) {
+            Copy-Item $upstreamDesktopRuntimeLock official/apps/desktop/scripts/primary-runtime-lock.json -Force
+          }
           $plugin = 'packages/client/ui-workspace-file-drag'
           if (Test-Path "official/$plugin") { throw 'The official source already owns the workspace-file drag package name.' }
           Copy-Item "desktop-source/$plugin" "official/$plugin" -Recurse

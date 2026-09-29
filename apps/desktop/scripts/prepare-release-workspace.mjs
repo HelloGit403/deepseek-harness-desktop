@@ -61,15 +61,7 @@ export function prepareReleaseHostConfig(source) {
   if (!/"references"\s*:/u.test(source)) {
     throw new Error('The upstream host TypeScript config does not define project references.')
   }
-  const desktopReference = /,\s*\{\s*"path"\s*:\s*"\.\/apps\/desktop"\s*\}/u
-  if (!desktopReference.test(source)) {
-    throw new Error('The upstream host TypeScript config does not reference ./apps/desktop.')
-  }
-  const updated = source.replace(desktopReference, '')
-  if (desktopReference.test(updated)) {
-    throw new Error('The upstream host TypeScript config references ./apps/desktop more than once.')
-  }
-  return updated
+  return source.replace(/^\s*\{\s*"path"\s*:\s*"\.\/apps\/desktop(?:\/tsconfig\.host\.json)?"\s*\},?\r?\n/gmu, '')
 }
 
 /**
@@ -79,15 +71,7 @@ export function prepareReleaseHostConfig(source) {
  * @returns {string} Updated source without the replaced desktop package.
  */
 export function prepareReleaseBundlerConfig(source) {
-  const desktopWorkspace = /,\s*['"]apps\/desktop['"]/u
-  if (!desktopWorkspace.test(source)) {
-    throw new Error('The upstream bundler config does not include apps/desktop.')
-  }
-  const updated = source.replace(desktopWorkspace, '')
-  if (desktopWorkspace.test(updated)) {
-    throw new Error('The upstream bundler config includes apps/desktop more than once.')
-  }
-  return updated
+  return source.replace(/,\s*['"]apps\/desktop['"]/gu, '')
 }
 
 /**
@@ -118,17 +102,18 @@ export function prepareReleaseWebAppManifest(source) {
  */
 export function prepareReleaseClientConfig(source) {
   const pluginPath = './packages/client/ui-workspace-file-drag'
-  if (source.includes(`"path": "${pluginPath}"`)) return source
   if (!/"references"\s*:/u.test(source)) {
     throw new Error('The upstream Client TypeScript config does not define project references.')
   }
-  const eol = source.includes('\r\n') ? '\r\n' : '\n'
+  const withoutDesktop = source.replace(/^\s*\{\s*"path"\s*:\s*"\.\/apps\/desktop\/tsconfig\.client\.json"\s*\},?\r?\n/gmu, '')
+  if (withoutDesktop.includes(`"path": "${pluginPath}"`)) return withoutDesktop
+  const eol = withoutDesktop.includes('\r\n') ? '\r\n' : '\n'
   const anchor = /^(\s*)\{\s*"path"\s*:\s*"\.\/packages\/client\/ui-reference"\s*\},\s*$/mu
-  const match = anchor.exec(source)
+  const match = anchor.exec(withoutDesktop)
   if (match === null) {
     throw new Error('The upstream Client TypeScript config does not reference ui-reference.')
   }
-  return source.replace(anchor, line => `${line}${eol}${match[1]}{ "path": "${pluginPath}" },`)
+  return withoutDesktop.replace(anchor, line => `${line}${eol}${match[1]}{ "path": "${pluginPath}" },`)
 }
 
 /**
