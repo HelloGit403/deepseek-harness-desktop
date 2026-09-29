@@ -134,9 +134,14 @@ test('removes the replaced upstream desktop project from the host build', () => 
   assert.match(updated, /preserves upstream JSONC comments/u)
   assert.match(updated, /apps\/web\/tests\/other\.e2e\.ts/u)
   assert.doesNotMatch(updated, /desktop-onboarding\.e2e\.ts|shortcuts-desktop\.e2e\.ts/u)
+  assert.match(updated, /packages\/client\/shortcuts\/tsconfig\.host\.json/u)
+  assert.equal(prepareReleaseHostConfig(updated), updated)
   assert.match(updated, /\.\/apps\/desktop-host/u)
   assert.doesNotMatch(updated, /"\.\/apps\/desktop"/u)
-  assert.equal(prepareReleaseHostConfig('{"references":[]}\n'), '{"references":[]}\n')
+  assert.match(
+    prepareReleaseHostConfig('{"references":[]}\n'),
+    /packages\/client\/shortcuts\/tsconfig\.host\.json/u,
+  )
   const currentHost = prepareReleaseHostConfig(source.replace(
     '"./apps/desktop"',
     '"./apps/desktop/tsconfig.host.json"',
