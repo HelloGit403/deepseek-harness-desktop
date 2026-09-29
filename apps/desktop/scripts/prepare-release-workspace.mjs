@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const DESKTOP_BUILD_PERMISSIONS = new Map([
@@ -143,6 +145,27 @@ export function prepareReleaseClientConfig(source) {
 }
 
 /**
+ * Points the private Client plugin at upstream face-specific projects when
+ * the upstream package root is a solution config rather than a project.
+ *
+ * @param {string} source Desktop plugin TypeScript config.
+ * @param {ReadonlySet<string>} splitProjects Relative project paths with a Client config.
+ * @returns {string} Adapted plugin TypeScript config.
+ */
+export function prepareReleasePluginConfig(source, splitProjects) {
+  const config = JSON.parse(source)
+  if (!Array.isArray(config.references)) throw new Error('The workspace-file drag plugin has no project references.')
+  let changed = false
+  for (const reference of config.references) {
+    if (splitProjects.has(reference.path)) {
+      reference.path += '/tsconfig.client.json'
+      changed = true
+    }
+  }
+  return changed ? `${JSON.stringify(config, null, 2)}\n` : source
+}
+
+/**
  * Appends the desktop client plugin to the official Web Loader roster.
  *
  * @param {string} source Upstream Web bundle `cordis.patch.yml` contents.
@@ -172,11 +195,12 @@ async function main() {
     webPatchPath,
     clientConfigPath,
     rootManifestPath,
+    pluginConfigPath,
   ] = process.argv.slice(2)
   if (!workspacePath || !hostConfigPath || !bundlerConfigPath
-    || !webManifestPath || !webPatchPath || !clientConfigPath || !rootManifestPath) {
+    || !webManifestPath || !webPatchPath || !clientConfigPath || !rootManifestPath || !pluginConfigPath) {
     throw new Error(
-      'Usage: prepare-release-workspace.mjs <pnpm-workspace.yaml> <tsconfig.host.json> <tsdown.config.ts> <web-package.json> <web-cordis.patch.yml> <tsconfig.client.json> <root-package.json>',
+      'Usage: prepare-release-workspace.mjs <pnpm-workspace.yaml> <tsconfig.host.json> <tsdown.config.ts> <web-package.json> <web-cordis.patch.yml> <tsconfig.client.json> <root-package.json> <plugin-tsconfig.json>',
     )
   }
   const workspace = await readFile(workspacePath, 'utf8')
@@ -186,6 +210,9 @@ async function main() {
   const webPatch = await readFile(webPatchPath, 'utf8')
   const clientConfig = await readFile(clientConfigPath, 'utf8')
   const rootManifest = await readFile(rootManifestPath, 'utf8')
+  const pluginConfig = await readFile(pluginConfigPath, 'utf8')
+  const splitProjects = new Set(['../locale', '../ui-conversation'].filter(path =>
+    existsSync(resolve(dirname(pluginConfigPath), path, 'tsconfig.client.json'))))
   await writeFile(workspacePath, prepareReleaseWorkspace(workspace), 'utf8')
   await writeFile(hostConfigPath, prepareReleaseHostConfig(hostConfig), 'utf8')
   await writeFile(bundlerConfigPath, prepareReleaseBundlerConfig(bundlerConfig), 'utf8')
@@ -193,6 +220,7 @@ async function main() {
   await writeFile(webPatchPath, prepareReleaseWebAppPatch(webPatch), 'utf8')
   await writeFile(clientConfigPath, prepareReleaseClientConfig(clientConfig), 'utf8')
   await writeFile(rootManifestPath, prepareReleaseRootManifest(rootManifest), 'utf8')
+  await writeFile(pluginConfigPath, prepareReleasePluginConfig(pluginConfig, splitProjects), 'utf8')
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

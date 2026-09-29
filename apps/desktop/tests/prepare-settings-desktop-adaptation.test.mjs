@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   mergeSettingsLocales,
+  prepareDesktopUpdateIcons,
   prepareSettingsIndex,
 } from '../scripts/prepare-settings-desktop-adaptation.mjs'
 
@@ -69,4 +70,15 @@ test('desktop settings adaptation merges only missing locale keys', () => {
 test('desktop settings adaptation rejects an unknown official entry layout', () => {
   assert.throws(() => prepareSettingsIndex('export function apply() {}\n'), /import anchor/u)
   assert.throws(() => mergeSettingsLocales('', adaptationLocales), /zh dictionary/u)
+})
+
+test('desktop update icons follow the official primitive exports', () => {
+  const component = 'import { IconCheckOutline16, IconRefreshOutline16 } from "icons"; <IconCheckOutline16 />'
+  const icons = 'export const IconCheckOutlineRegular = () => null\nexport const IconRefreshOutlineRegular = () => null\nexport const IconDownloadOutlineRegular = () => null\nexport const IconWarningOutlineRegular = () => null\n'
+  const result = prepareDesktopUpdateIcons(component, icons)
+  assert.match(result, /IconCheckOutlineRegular/u)
+  assert.match(result, /IconRefreshOutlineRegular/u)
+  assert.doesNotMatch(result, /IconCheckOutline16/u)
+  assert.equal(prepareDesktopUpdateIcons(result, icons), result)
+  assert.throws(() => prepareDesktopUpdateIcons(component, ''), /export neither/u)
 })

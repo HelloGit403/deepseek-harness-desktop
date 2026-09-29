@@ -124,21 +124,45 @@ export function mergeSettingsLocales(official, adaptation) {
   return updated
 }
 
+/**
+ * Uses the icon names exported by the checked-out official primitives package.
+ *
+ * @param {string} source Desktop update section source.
+ * @param {string} officialIcons Official icon module source.
+ * @returns {string} Desktop update section with available icon imports.
+ */
+export function prepareDesktopUpdateIcons(source, officialIcons) {
+  let updated = source
+  for (const name of ['Check', 'Download', 'Refresh', 'Warning']) {
+    const oldName = `Icon${name}Outline16`
+    const currentName = `Icon${name}OutlineRegular`
+    if (officialIcons.includes(`export const ${oldName}`)) continue
+    if (!officialIcons.includes(`export const ${currentName}`)) {
+      throw new Error(`Official primitives export neither ${oldName} nor ${currentName}.`)
+    }
+    updated = updated.replaceAll(oldName, currentName)
+  }
+  return updated
+}
+
 async function main() {
-  const [indexPath, officialLocalesPath, adaptationLocalesPath] = process.argv.slice(2)
-  if (!indexPath || !officialLocalesPath || !adaptationLocalesPath) {
+  const [indexPath, officialLocalesPath, adaptationLocalesPath, desktopUpdatePath, officialIconsPath] = process.argv.slice(2)
+  if (!indexPath || !officialLocalesPath || !adaptationLocalesPath || !desktopUpdatePath || !officialIconsPath) {
     throw new Error(
-      'Usage: prepare-settings-desktop-adaptation.mjs <index.ts> <official-locales.ts> <adaptation-locales.ts>',
+      'Usage: prepare-settings-desktop-adaptation.mjs <index.ts> <official-locales.ts> <adaptation-locales.ts> <desktop-update.tsx> <official-icons.tsx>',
     )
   }
-  const [index, officialLocales, adaptationLocales] = await Promise.all([
+  const [index, officialLocales, adaptationLocales, desktopUpdate, officialIcons] = await Promise.all([
     readFile(indexPath, 'utf8'),
     readFile(officialLocalesPath, 'utf8'),
     readFile(adaptationLocalesPath, 'utf8'),
+    readFile(desktopUpdatePath, 'utf8'),
+    readFile(officialIconsPath, 'utf8'),
   ])
   await Promise.all([
     writeFile(indexPath, prepareSettingsIndex(index), 'utf8'),
     writeFile(officialLocalesPath, mergeSettingsLocales(officialLocales, adaptationLocales), 'utf8'),
+    writeFile(desktopUpdatePath, prepareDesktopUpdateIcons(desktopUpdate, officialIcons), 'utf8'),
   ])
 }
 

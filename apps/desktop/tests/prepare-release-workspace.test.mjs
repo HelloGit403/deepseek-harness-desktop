@@ -6,6 +6,7 @@ import {
   prepareReleaseBundlerConfig,
   prepareReleaseClientConfig,
   prepareReleaseHostConfig,
+  prepareReleasePluginConfig,
   prepareReleaseRootManifest,
   prepareReleaseWebAppManifest,
   prepareReleaseWebAppPatch,
@@ -50,7 +51,7 @@ test('desktop release preserves upstream workspace configuration', () => {
   )
   assert.match(
     workflow,
-    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts official\/packages\/bundle\/web-app\/package\.json official\/packages\/bundle\/web-app\/cordis\.patch\.yml official\/tsconfig\.client\.json official\/package\.json/u,
+    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts official\/packages\/bundle\/web-app\/package\.json official\/packages\/bundle\/web-app\/cordis\.patch\.yml official\/tsconfig\.client\.json official\/package\.json official\/packages\/client\/ui-workspace-file-drag\/tsconfig\.json/u,
   )
   assert.doesNotMatch(workflow, /git -C official apply/u)
   assert.match(workflow, /verify-workspace-file-drag-host\.mjs official/u)
@@ -122,6 +123,18 @@ test('omits only the replaced official Desktop bundle from the Host build', () =
   assert.equal(JSON.parse(updated).scripts['build:lib:client'], 'tsc -b tsconfig.client.json')
   assert.equal(prepareReleaseRootManifest(updated), updated)
   assert.throws(() => prepareReleaseRootManifest('{}'), /no Host build script/u)
+})
+
+test('desktop plugin references split official Client projects when present', () => {
+  const source = '{"references":[{"path":"../locale"},{"path":"../ui-conversation"},{"path":"../ui-slots"}]}\n'
+  const updated = prepareReleasePluginConfig(source, new Set(['../locale', '../ui-conversation']))
+  assert.deepEqual(JSON.parse(updated).references.map(({ path }) => path), [
+    '../locale/tsconfig.client.json',
+    '../ui-conversation/tsconfig.client.json',
+    '../ui-slots',
+  ])
+  assert.equal(prepareReleasePluginConfig(updated, new Set(['../locale', '../ui-conversation'])), updated)
+  assert.equal(prepareReleasePluginConfig(source, new Set()), source)
 })
 
 test('removes the replaced upstream desktop project from the host build', () => {
