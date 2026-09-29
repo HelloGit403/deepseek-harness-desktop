@@ -69,6 +69,10 @@ jobs:
           Copy-Item "desktop-source/$plugin" "official/$plugin" -Recurse
           node desktop-source/apps/desktop/scripts/prepare-release-workspace.mjs official/pnpm-workspace.yaml official/tsconfig.host.json official/tsdown.config.ts official/packages/bundle/web-app/package.json official/packages/bundle/web-app/cordis.patch.yml official/tsconfig.client.json official/package.json official/packages/client/ui-workspace-file-drag/tsconfig.json
           if ($LASTEXITCODE -ne 0) { throw 'Unable to prepare the official workspace for the desktop adaptation.' }
+          if (Test-Path official/packages/bundle/web-app/presets/ptc.patch.yml) {
+            node desktop-source/apps/desktop/scripts/legacy-preset-alias.mjs official/packages/bundle/web-app/presets/ptc.patch.yml
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to preserve legacy code sessions on the official preset registry.' }
+          }
           node desktop-source/apps/desktop/scripts/verify-workspace-file-drag-host.mjs official
           if ($LASTEXITCODE -ne 0) { throw 'The official Web DOM no longer satisfies the workspace-file drag plugin.' }
           $client = 'packages/client/ui-settings-general/src/client'

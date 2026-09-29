@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { installLegacyPresetAlias } from '../scripts/legacy-preset-alias.mjs'
+import { installLegacyPresetAlias, prepareLegacyPresetPatch } from '../scripts/legacy-preset-alias.mjs'
 
 const PRESETS = join('node_modules', '@deepseek-ai', 'dsh-agent-presets', 'presets')
 
@@ -36,4 +36,29 @@ test('keeps an official code preset when Harness supplies one', (context) => {
 
   assert.equal(installLegacyPresetAlias(root), 'native')
   assert.equal(readFileSync(join(presets, 'code', 'agent.cordis.yml'), 'utf8'), 'official\n')
+})
+
+test('retains historical code sessions with the registry-based PTC preset', (context) => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-desktop-preset-registry-'))
+  context.after(() => rmSync(root, { force: true, recursive: true }))
+  const presets = join(root, 'node_modules', '@deepseek-ai', 'dsh-web-app', 'presets')
+  mkdirSync(presets, { recursive: true })
+  const official = '- insert:\n    - id: preset-ptc\n      name: ptc\n      config:\n        id: ptc\n        order: 2\n'
+  const adapted = prepareLegacyPresetPatch(official)
+  assert.match(adapted, /- id: preset-code/u)
+  assert.match(adapted, /id: code/u)
+  assert.match(adapted, /order: 99/u)
+  assert.equal(prepareLegacyPresetPatch(adapted), adapted)
+  writeFileSync(join(presets, 'ptc.patch.yml'), adapted)
+  assert.equal(installLegacyPresetAlias(root), 'installed')
+})
+
+test('does not synthesize a registry alias when official code exists', (context) => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-desktop-native-registry-'))
+  context.after(() => rmSync(root, { force: true, recursive: true }))
+  const presets = join(root, 'node_modules', '@deepseek-ai', 'dsh-web-app', 'presets')
+  mkdirSync(presets, { recursive: true })
+  writeFileSync(join(presets, 'ptc.patch.yml'), '- insert:\n    - id: preset-ptc\n      config:\n        id: ptc\n')
+  writeFileSync(join(presets, 'code.patch.yml'), '- insert:\n    - id: preset-code\n      config:\n        id: code\n')
+  assert.equal(installLegacyPresetAlias(root), 'native')
 })
