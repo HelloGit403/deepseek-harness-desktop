@@ -6,6 +6,7 @@ import {
   prepareReleaseBundlerConfig,
   prepareReleaseClientConfig,
   prepareReleaseHostConfig,
+  prepareReleaseRootManifest,
   prepareReleaseWebAppManifest,
   prepareReleaseWebAppPatch,
   prepareReleaseWorkspace,
@@ -49,7 +50,7 @@ test('desktop release preserves upstream workspace configuration', () => {
   )
   assert.match(
     workflow,
-    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts official\/packages\/bundle\/web-app\/package\.json official\/packages\/bundle\/web-app\/cordis\.patch\.yml official\/tsconfig\.client\.json/u,
+    /prepare-release-workspace\.mjs official\/pnpm-workspace\.yaml official\/tsconfig\.host\.json official\/tsdown\.config\.ts official\/packages\/bundle\/web-app\/package\.json official\/packages\/bundle\/web-app\/cordis\.patch\.yml official\/tsconfig\.client\.json official\/package\.json/u,
   )
   assert.doesNotMatch(workflow, /git -C official apply/u)
   assert.match(workflow, /verify-workspace-file-drag-host\.mjs official/u)
@@ -109,6 +110,18 @@ test('removes the replaced upstream desktop project from the bundler workspace',
 
   assert.equal(updated, "workspace: ['vendor/*', 'apps/cli', 'apps/desktop-host'],\n")
   assert.equal(prepareReleaseBundlerConfig("workspace: ['apps/cli'],\n"), "workspace: ['apps/cli'],\n")
+})
+
+test('omits only the replaced official Desktop bundle from the Host build', () => {
+  const source = JSON.stringify({ scripts: {
+    'build:lib:host': 'tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host && pnpm --filter @deepseek-ai/dsh-desktop run bundle',
+    'build:lib:client': 'tsc -b tsconfig.client.json',
+  } })
+  const updated = prepareReleaseRootManifest(source)
+  assert.equal(JSON.parse(updated).scripts['build:lib:host'], 'tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host')
+  assert.equal(JSON.parse(updated).scripts['build:lib:client'], 'tsc -b tsconfig.client.json')
+  assert.equal(prepareReleaseRootManifest(updated), updated)
+  assert.throws(() => prepareReleaseRootManifest('{}'), /no Host build script/u)
 })
 
 test('removes the replaced upstream desktop project from the host build', () => {

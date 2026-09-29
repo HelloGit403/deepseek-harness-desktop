@@ -84,6 +84,23 @@ export function prepareReleaseBundlerConfig(source) {
 }
 
 /**
+ * Leaves the upstream Host and Client builds intact while omitting the bundle
+ * command for the upstream Desktop package replaced by this release.
+ *
+ * @param {string} source Upstream root `package.json` contents.
+ * @returns {string} Updated root manifest.
+ */
+export function prepareReleaseRootManifest(source) {
+  const manifest = JSON.parse(source)
+  const build = manifest.scripts?.['build:lib:host']
+  if (typeof build !== 'string') throw new Error('The upstream root has no Host build script.')
+  const desktopBundle = ' && pnpm --filter @deepseek-ai/dsh-desktop run bundle'
+  if (!build.includes(desktopBundle)) return source
+  manifest.scripts['build:lib:host'] = build.replace(desktopBundle, '')
+  return `${JSON.stringify(manifest, null, 2)}\n`
+}
+
+/**
  * Adds the desktop client plugin to the official Web bundle dependency graph.
  *
  * @param {string} source Upstream Web bundle `package.json` contents.
@@ -154,11 +171,12 @@ async function main() {
     webManifestPath,
     webPatchPath,
     clientConfigPath,
+    rootManifestPath,
   ] = process.argv.slice(2)
   if (!workspacePath || !hostConfigPath || !bundlerConfigPath
-    || !webManifestPath || !webPatchPath || !clientConfigPath) {
+    || !webManifestPath || !webPatchPath || !clientConfigPath || !rootManifestPath) {
     throw new Error(
-      'Usage: prepare-release-workspace.mjs <pnpm-workspace.yaml> <tsconfig.host.json> <tsdown.config.ts> <web-package.json> <web-cordis.patch.yml> <tsconfig.client.json>',
+      'Usage: prepare-release-workspace.mjs <pnpm-workspace.yaml> <tsconfig.host.json> <tsdown.config.ts> <web-package.json> <web-cordis.patch.yml> <tsconfig.client.json> <root-package.json>',
     )
   }
   const workspace = await readFile(workspacePath, 'utf8')
@@ -167,12 +185,14 @@ async function main() {
   const webManifest = await readFile(webManifestPath, 'utf8')
   const webPatch = await readFile(webPatchPath, 'utf8')
   const clientConfig = await readFile(clientConfigPath, 'utf8')
+  const rootManifest = await readFile(rootManifestPath, 'utf8')
   await writeFile(workspacePath, prepareReleaseWorkspace(workspace), 'utf8')
   await writeFile(hostConfigPath, prepareReleaseHostConfig(hostConfig), 'utf8')
   await writeFile(bundlerConfigPath, prepareReleaseBundlerConfig(bundlerConfig), 'utf8')
   await writeFile(webManifestPath, prepareReleaseWebAppManifest(webManifest), 'utf8')
   await writeFile(webPatchPath, prepareReleaseWebAppPatch(webPatch), 'utf8')
   await writeFile(clientConfigPath, prepareReleaseClientConfig(clientConfig), 'utf8')
+  await writeFile(rootManifestPath, prepareReleaseRootManifest(rootManifest), 'utf8')
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
