@@ -65,6 +65,7 @@ const deployArgs = [
   '--config.node-linker=hoisted',
   '--config.auto-install-peers=false',
   '--config.link-workspace-packages=true',
+  '--config.allow-unused-patches=true',
   '--filter',
   '@deepseek-ai/dsh-desktop',
   'deploy',
