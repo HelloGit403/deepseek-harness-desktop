@@ -61,7 +61,9 @@ export function prepareReleaseHostConfig(source) {
   if (!/"references"\s*:/u.test(source)) {
     throw new Error('The upstream host TypeScript config does not define project references.')
   }
-  return source.replace(/^\s*\{\s*"path"\s*:\s*"\.\/apps\/desktop(?:\/tsconfig\.host\.json)?"\s*\},?\r?\n/gmu, '')
+  return source
+    .replace(/^\s*\{\s*"path"\s*:\s*"\.\/apps\/desktop(?:\/tsconfig\.host\.json)?"\s*\},?\r?\n/gmu, '')
+    .replace(/^\s*"apps\/web\/tests\/(?:desktop-onboarding|shortcuts-desktop)\.e2e\.ts",?\r?\n/gmu, '')
 }
 
 /**

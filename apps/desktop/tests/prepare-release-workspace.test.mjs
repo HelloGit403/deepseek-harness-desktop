@@ -115,6 +115,11 @@ test('removes the replaced upstream desktop project from the host build', () => 
   const source = [
     '{',
     '  // The release adaptation preserves upstream JSONC comments.',
+    '  "include": [',
+    '    "apps/web/tests/desktop-onboarding.e2e.ts",',
+    '    "apps/web/tests/shortcuts-desktop.e2e.ts",',
+    '    "apps/web/tests/other.e2e.ts"',
+    '  ],',
     '  "references": [',
     '    { "path": "./apps/cli" },',
     '    { "path": "./apps/desktop-host" },',
@@ -127,6 +132,8 @@ test('removes the replaced upstream desktop project from the host build', () => 
   const updated = prepareReleaseHostConfig(source)
 
   assert.match(updated, /preserves upstream JSONC comments/u)
+  assert.match(updated, /apps\/web\/tests\/other\.e2e\.ts/u)
+  assert.doesNotMatch(updated, /desktop-onboarding\.e2e\.ts|shortcuts-desktop\.e2e\.ts/u)
   assert.match(updated, /\.\/apps\/desktop-host/u)
   assert.doesNotMatch(updated, /"\.\/apps\/desktop"/u)
   assert.equal(prepareReleaseHostConfig('{"references":[]}\n'), '{"references":[]}\n')
